@@ -1,0 +1,39 @@
+<resources>
+    <string name="app_name">Pilo Launcher</string>
+    <string name="no_apps_found">Nenhum aplicativo encontrado</string>
+    <string name="no_apps_to_show">Nenhum aplicativo para exibir</string>
+    <string name="settings">Configurações</string>
+    <string name="back">← Voltar</string>
+    <string name="set_as_default_launcher">Definir como inicializador padrão</string>
+    <string name="set_default">Definir padrão</string>
+    <string name="set">Definir</string>
+    <string name="focus_mode">Modo Foco</string>
+    <string name="focus_mode_active">Ativo: Vibra entre 09:00 e 18:00, toca entre 18:00 e 09:00</string>
+    <string name="disabled">Desativado</string>
+    <string name="visible_apps">Aplicativos Visíveis</string>
+    <string name="all_apps_visible">Todos os aplicativos visíveis</string>
+    <string name="apps_hidden_singular">%1$d aplicativo oculto</string>
+    <string name="apps_hidden_plural">%1$d aplicativos ocultos</string>
+    <string name="edit_arrow">Editar →</string>
+    <string name="default_launcher">Inicializador Padrão</string>
+    <string name="currently_default">Atualmente o inicializador padrão</string>
+    <string name="not_set_as_default">Não definido como padrão</string>
+    <string name="choose_visible_apps_desc">Escolha quais aplicativos aparecem na tela inicial</string>
+    <string name="could_not_open_app">Não foi possível abrir %1$s</string>
+    <string name="permission_needed_focus_mode">Permissão necessária para alterar o modo de som no Modo Foco</string>
+    <string name="could_not_open_notification_settings">Não foi possível abrir as configurações de política de notificação</string>
+    <string name="hidden_apps">Aplicativos Ocultos</string>
+    <string name="no_hidden_apps">Nenhum aplicativo oculto</string>
+    <string name="unhide">Exibir</string>
+    <string name="search_apps">Pesquisar aplicativos</string>
+    <string name="recent_apps">Aplicativos Recentes</string>
+    <string name="no_recent_apps">Nenhum aplicativo recente</string>
+    <string name="rename_apps">Renomear Aplicativos</string>
+    <string name="rename_apps_desc">Dê nomes personalizados aos seus aplicativos</string>
+    <string name="rename">Renomear</string>
+    <string name="save">Salvar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="focus_mode_on">Modo Foco ativo</string>
+    <string name="more_apps">Mais apps</string>
+</resources>
+
