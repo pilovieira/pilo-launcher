@@ -39,5 +39,20 @@
     <string name="uninstall">Desinstalar</string>
     <string name="could_not_open_app_info">Não foi possível abrir as informações do app</string>
     <string name="could_not_uninstall_app">Não foi possível desinstalar o app</string>
+    <string name="clock_style">Estilo do relógio</string>
+    <string name="clock_style_analog">Analógico</string>
+    <string name="clock_style_digital">Digital</string>
+    <string name="lock_screen">Tela de Bloqueio Personalizada</string>
+    <string name="lock_screen_desc">Mostra seu próprio relógio e a quantidade de notificações quando a tela liga</string>
+    <string name="grant_notification_access">Conceda acesso a notificações para mostrar a contagem</string>
+    <string name="unlock_prompt_title">Desbloquear</string>
+    <string name="tap_to_unlock">Toque para desbloquear</string>
+    <string name="notification_count_singular">%1$d notificação</string>
+    <string name="notification_count_plural">%1$d notificações</string>
+    <string name="lock_screen_service_channel">Tela de bloqueio</string>
+    <string name="lock_screen_service_notification">Tela de bloqueio personalizada ativa</string>
+    <string name="list_density">Tamanho da lista de apps</string>
+    <string name="list_density_compact">Compacta</string>
+    <string name="list_density_normal">Normal</string>
 </resources>
 

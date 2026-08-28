@@ -39,4 +39,19 @@
     <string name="uninstall">Uninstall</string>
     <string name="could_not_open_app_info">Could not open app info</string>
     <string name="could_not_uninstall_app">Could not uninstall app</string>
+    <string name="clock_style">Clock style</string>
+    <string name="clock_style_analog">Analog</string>
+    <string name="clock_style_digital">Digital</string>
+    <string name="lock_screen">Custom Lock Screen</string>
+    <string name="lock_screen_desc">Show your own clock and notification count when the screen turns on</string>
+    <string name="grant_notification_access">Grant notification access to show notification count</string>
+    <string name="unlock_prompt_title">Unlock</string>
+    <string name="tap_to_unlock">Tap to unlock</string>
+    <string name="notification_count_singular">%1$d notification</string>
+    <string name="notification_count_plural">%1$d notifications</string>
+    <string name="lock_screen_service_channel">Lock screen</string>
+    <string name="lock_screen_service_notification">Custom lock screen is active</string>
+    <string name="list_density">App list size</string>
+    <string name="list_density_compact">Compact</string>
+    <string name="list_density_normal">Normal</string>
 </resources>

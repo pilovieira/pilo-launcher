@@ -19,7 +19,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +46,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -49,6 +54,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -69,6 +75,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Canvas
+import androidx.core.content.ContextCompat
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -91,6 +98,7 @@ class MainActivity : ComponentActivity() {
     private var currentScreen by mutableStateOf(Screen.LAUNCHER)
     private var isDefault by mutableStateOf(false)
     private var isFocusMode by mutableStateOf(false)
+    private var hasNotificationAccess by mutableStateOf(false)
 
     private val roleRequestLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -110,19 +118,30 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val postNotificationsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        viewModel.setLockScreenEnabled(true)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         isDefault = isDefaultLauncher()
         isFocusMode = FocusModeHelper.isFocusModeEnabled(this)
+        hasNotificationAccess = NotificationAccessHelper.isNotificationListenerEnabled(this)
 
         setContent {
             val apps by viewModel.apps.collectAsState()
             val allApps by viewModel.allApps.collectAsState()
             val hiddenAppKeys by viewModel.hiddenAppKeys.collectAsState()
             val recentApps by viewModel.recentApps.collectAsState()
+            val clockStyle by viewModel.clockStyle.collectAsState()
+            val lockScreenEnabled by viewModel.lockScreenEnabled.collectAsState()
+            val listDensity by viewModel.listDensity.collectAsState()
 
+            MaterialTheme(colorScheme = darkColorScheme()) {
             when (currentScreen) {
                 Screen.HOME -> {
                     BackHandler {
@@ -130,6 +149,7 @@ class MainActivity : ComponentActivity() {
                     }
                     HomeScreen(
                         isFocusMode = isFocusMode,
+                        clockStyle = clockStyle,
                         onSwipeUp = { currentScreen = Screen.LAUNCHER },
                         onSwipeDown = { currentScreen = Screen.RECENTS }
                     )
@@ -153,7 +173,8 @@ class MainActivity : ComponentActivity() {
                         hiddenAppsCount = hiddenAppKeys.size,
                         onOpenHiddenApps = {
                             currentScreen = Screen.HIDDEN_APPS
-                        }
+                        },
+                        listDensity = listDensity
                     )
                 }
                 Screen.RECENTS -> {
@@ -170,7 +191,8 @@ class MainActivity : ComponentActivity() {
                         },
                         onBackClick = {
                             currentScreen = Screen.HOME
-                        }
+                        },
+                        listDensity = listDensity
                     )
                 }
                 Screen.SETTINGS -> {
@@ -192,6 +214,22 @@ class MainActivity : ComponentActivity() {
                         },
                         onOpenRenameApps = {
                             currentScreen = Screen.RENAME_APPS
+                        },
+                        clockStyle = clockStyle,
+                        onClockStyleChange = { style ->
+                            viewModel.setClockStyle(style)
+                        },
+                        listDensity = listDensity,
+                        onListDensityChange = { density ->
+                            viewModel.setListDensity(density)
+                        },
+                        lockScreenEnabled = lockScreenEnabled,
+                        onLockScreenEnabledChange = { enabled ->
+                            handleLockScreenToggle(enabled)
+                        },
+                        hasNotificationAccess = hasNotificationAccess,
+                        onRequestNotificationAccess = {
+                            requestNotificationAccess()
                         },
                         onBackClick = {
                             currentScreen = Screen.LAUNCHER
@@ -225,7 +263,8 @@ class MainActivity : ComponentActivity() {
                         },
                         onBackClick = {
                             currentScreen = Screen.LAUNCHER
-                        }
+                        },
+                        listDensity = listDensity
                     )
                 }
                 Screen.RENAME_APPS -> {
@@ -243,6 +282,7 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+            }
         }
     }
 
@@ -258,10 +298,31 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         isDefault = isDefaultLauncher()
         isFocusMode = FocusModeHelper.isFocusModeEnabled(this)
+        hasNotificationAccess = NotificationAccessHelper.isNotificationListenerEnabled(this)
         if (isFocusMode) {
             FocusModeHelper.applyRingerMode(this)
         }
         viewModel.loadApps()
+    }
+
+    private fun handleLockScreenToggle(enabled: Boolean) {
+        if (enabled &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED
+        ) {
+            postNotificationsLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            return
+        }
+        viewModel.setLockScreenEnabled(enabled)
+    }
+
+    private fun requestNotificationAccess() {
+        try {
+            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        } catch (_: Exception) {
+            Toast.makeText(this, getString(R.string.could_not_open_notification_settings), Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun handleFocusModeToggle(enabled: Boolean) {
@@ -343,6 +404,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun HomeScreen(
     isFocusMode: Boolean,
+    clockStyle: ClockStyle,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
     modifier: Modifier = Modifier
@@ -371,7 +433,10 @@ fun HomeScreen(
                 )
             }
     ) {
-        AnalogClock(modifier = Modifier.size(220.dp).align(Alignment.Center))
+        when (clockStyle) {
+            ClockStyle.ANALOG -> AnalogClock(modifier = Modifier.size(220.dp).align(Alignment.Center))
+            ClockStyle.DIGITAL -> Box(modifier = Modifier.align(Alignment.Center)) { DigitalClock() }
+        }
 
         if (isFocusMode) {
             Row(
@@ -489,6 +554,30 @@ fun AnalogClock(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun DigitalClock(modifier: Modifier = Modifier) {
+    var now by remember { mutableStateOf(Calendar.getInstance()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = Calendar.getInstance()
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    val hour = now.get(Calendar.HOUR_OF_DAY).toString().padStart(2, '0')
+    val minute = now.get(Calendar.MINUTE).toString().padStart(2, '0')
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
+        Text(
+            text = "$hour:$minute",
+            color = Color.White,
+            fontSize = 56.sp,
+            fontWeight = FontWeight.Light
+        )
+    }
+}
+
+@Composable
 fun SearchIcon(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val strokeWidth = size.minDimension * 0.11f
@@ -549,6 +638,49 @@ fun ClearIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun SettingsIcon(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+        val outerRadius = size.minDimension / 2f
+        val innerRadius = outerRadius * 0.55f
+        val toothLength = outerRadius * 0.22f
+        val toothCount = 8
+
+        for (i in 0 until toothCount) {
+            val angle = Math.toRadians((i * (360.0 / toothCount)))
+            val start = androidx.compose.ui.geometry.Offset(
+                x = center.x + (outerRadius - toothLength) * cos(angle).toFloat(),
+                y = center.y + (outerRadius - toothLength) * sin(angle).toFloat()
+            )
+            val end = androidx.compose.ui.geometry.Offset(
+                x = center.x + outerRadius * cos(angle).toFloat(),
+                y = center.y + outerRadius * sin(angle).toFloat()
+            )
+            drawLine(
+                color = Color.White,
+                start = start,
+                end = end,
+                strokeWidth = size.minDimension * 0.14f,
+                cap = StrokeCap.Round
+            )
+        }
+
+        drawCircle(
+            color = Color.White,
+            radius = outerRadius - toothLength * 0.6f,
+            center = center,
+            style = Stroke(width = size.minDimension * 0.1f)
+        )
+
+        drawCircle(
+            color = Color.Black,
+            radius = innerRadius * 0.55f,
+            center = center
+        )
+    }
+}
+
+@Composable
 fun LauncherScreen(
     apps: List<AppInfo>,
     onAppClick: (AppInfo) -> Unit,
@@ -557,6 +689,7 @@ fun LauncherScreen(
     onSetDefaultClick: () -> Unit,
     hiddenAppsCount: Int,
     onOpenHiddenApps: () -> Unit,
+    listDensity: ListDensity,
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -574,6 +707,22 @@ fun LauncherScreen(
             .fillMaxSize()
             .background(Color.Black)
             .systemBarsPadding()
+            .pointerInput(Unit) {
+                var totalDrag = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { totalDrag = 0f },
+                    onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        totalDrag += dragAmount
+                    },
+                    onDragEnd = {
+                        val threshold = 80f
+                        if (totalDrag < -threshold) {
+                            onOpenHiddenApps()
+                        }
+                    }
+                )
+            }
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
@@ -584,7 +733,7 @@ fun LauncherScreen(
             ) {
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .weight(1f)
                         .height(36.dp)
                         .border(
                             width = 1.dp,
@@ -614,6 +763,21 @@ fun LauncherScreen(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     SearchIcon(modifier = Modifier.size(14.dp))
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFF333333),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .clickable(onClick = onOpenSettings),
+                    contentAlignment = Alignment.Center
+                ) {
+                    SettingsIcon(modifier = Modifier.size(16.dp))
                 }
             }
 
@@ -645,7 +809,8 @@ fun LauncherScreen(
                         AppListItem(
                             app = app,
                             onClick = { onAppClick(app) },
-                            onLongClick = { appForContextMenu = app }
+                            onLongClick = { appForContextMenu = app },
+                            listDensity = listDensity
                         )
                     }
 
@@ -665,23 +830,6 @@ fun LauncherScreen(
                                     fontWeight = FontWeight.Medium
                                 )
                             }
-                        }
-                    }
-
-                    // Settings button item at the end of the apps list
-                    item(key = "launcher_settings_item") {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(onClick = onOpenSettings)
-                                .padding(vertical = 14.dp)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.settings),
-                                color = Color(0xFFAAAAAA),
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Medium
-                            )
                         }
                     }
                 }
@@ -809,6 +957,7 @@ fun RecentAppsScreen(
     onAppClick: (AppInfo) -> Unit,
     onClearClick: () -> Unit,
     onBackClick: () -> Unit,
+    listDensity: ListDensity,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -876,7 +1025,8 @@ fun RecentAppsScreen(
                 ) { app ->
                     AppListItem(
                         app = app,
-                        onClick = { onAppClick(app) }
+                        onClick = { onAppClick(app) },
+                        listDensity = listDensity
                     )
                 }
             }
@@ -893,6 +1043,14 @@ fun SettingsScreen(
     hiddenAppsCount: Int,
     onOpenAppVisibility: () -> Unit,
     onOpenRenameApps: () -> Unit,
+    clockStyle: ClockStyle,
+    onClockStyleChange: (ClockStyle) -> Unit,
+    listDensity: ListDensity,
+    onListDensityChange: (ListDensity) -> Unit,
+    lockScreenEnabled: Boolean,
+    onLockScreenEnabledChange: (Boolean) -> Unit,
+    hasNotificationAccess: Boolean,
+    onRequestNotificationAccess: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -902,6 +1060,7 @@ fun SettingsScreen(
             .background(Color.Black)
             .systemBarsPadding()
             .padding(horizontal = 24.dp, vertical = 16.dp)
+            .verticalScroll(rememberScrollState())
     ) {
         // Top Back Header
         Row(
@@ -1054,6 +1213,129 @@ fun SettingsScreen(
             color = Color(0xFF222222)
         )
 
+        // Clock Style Setting Item
+        Column(modifier = Modifier.padding(vertical = 12.dp)) {
+            Text(
+                text = stringResource(R.string.clock_style),
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ClockStyleOption(
+                    label = stringResource(R.string.clock_style_analog),
+                    selected = clockStyle == ClockStyle.ANALOG,
+                    onClick = { onClockStyleChange(ClockStyle.ANALOG) }
+                )
+                ClockStyleOption(
+                    label = stringResource(R.string.clock_style_digital),
+                    selected = clockStyle == ClockStyle.DIGITAL,
+                    onClick = { onClockStyleChange(ClockStyle.DIGITAL) }
+                )
+            }
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = Color(0xFF222222)
+        )
+
+        // List Density Setting Item
+        Column(modifier = Modifier.padding(vertical = 12.dp)) {
+            Text(
+                text = stringResource(R.string.list_density),
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ClockStyleOption(
+                    label = stringResource(R.string.list_density_compact),
+                    selected = listDensity == ListDensity.COMPACT,
+                    onClick = { onListDensityChange(ListDensity.COMPACT) }
+                )
+                ClockStyleOption(
+                    label = stringResource(R.string.list_density_normal),
+                    selected = listDensity == ListDensity.NORMAL,
+                    onClick = { onListDensityChange(ListDensity.NORMAL) }
+                )
+            }
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = Color(0xFF222222)
+        )
+
+        // Lock Screen Setting Item
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.lock_screen),
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.lock_screen_desc),
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Switch(
+                checked = lockScreenEnabled,
+                onCheckedChange = onLockScreenEnabledChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.Black,
+                    checkedTrackColor = Color.White,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFF333333),
+                    uncheckedBorderColor = Color.Transparent
+                )
+            )
+        }
+
+        if (lockScreenEnabled && !hasNotificationAccess) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onRequestNotificationAccess)
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = stringResource(R.string.grant_notification_access),
+                    color = Color(0xFFAAAAAA),
+                    fontSize = 13.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = stringResource(R.string.edit_arrow),
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = Color(0xFF222222)
+        )
+
         // Default Launcher Setting Item
         Row(
             modifier = Modifier
@@ -1123,6 +1405,32 @@ fun SettingsScreen(
                 fontWeight = FontWeight.SemiBold
             )
         }
+    }
+}
+
+@Composable
+fun ClockStyleOption(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .border(
+                width = 1.dp,
+                color = if (selected) Color.White else Color(0xFF333333),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+    ) {
+        Text(
+            text = label,
+            color = if (selected) Color.White else Color(0xFFAAAAAA),
+            fontSize = 14.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+        )
     }
 }
 
@@ -1234,6 +1542,7 @@ fun HiddenAppsScreen(
     hiddenAppKeys: Set<String>,
     onAppClick: (AppInfo) -> Unit,
     onBackClick: () -> Unit,
+    listDensity: ListDensity,
     modifier: Modifier = Modifier
 ) {
     val hiddenApps = allApps.filter { app -> hiddenAppKeys.contains(app.key) }
@@ -1243,6 +1552,22 @@ fun HiddenAppsScreen(
             .fillMaxSize()
             .background(Color.Black)
             .systemBarsPadding()
+            .pointerInput(Unit) {
+                var totalDrag = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { totalDrag = 0f },
+                    onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        totalDrag += dragAmount
+                    },
+                    onDragEnd = {
+                        val threshold = 80f
+                        if (totalDrag > threshold) {
+                            onBackClick()
+                        }
+                    }
+                )
+            }
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         // Top Back Header
@@ -1294,7 +1619,8 @@ fun HiddenAppsScreen(
                 ) { app ->
                     AppListItem(
                         app = app,
-                        onClick = { onAppClick(app) }
+                        onClick = { onAppClick(app) },
+                        listDensity = listDensity
                     )
                 }
             }
@@ -1439,18 +1765,22 @@ fun AppListItem(
     app: AppInfo,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
+    listDensity: ListDensity = ListDensity.NORMAL,
     modifier: Modifier = Modifier
 ) {
+    val verticalPadding = if (listDensity == ListDensity.COMPACT) 6.dp else 12.dp
+    val fontSize = if (listDensity == ListDensity.COMPACT) 15.sp else 18.sp
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(vertical = 12.dp)
+            .padding(vertical = verticalPadding)
     ) {
         Text(
             text = app.label,
             color = Color.White,
-            fontSize = 18.sp
+            fontSize = fontSize
         )
     }
 }

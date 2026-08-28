@@ -19,11 +19,24 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+enum class ClockStyle {
+    ANALOG,
+    DIGITAL
+}
+
+enum class ListDensity {
+    COMPACT,
+    NORMAL
+}
+
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefs = application.getSharedPreferences("launcher_app_prefs", Context.MODE_PRIVATE)
     private val keyHiddenApps = "key_hidden_apps"
     private val keyRecentApps = "key_recent_apps"
+    private val keyClockStyle = "key_clock_style"
+    private val keyLockScreenEnabled = "key_lock_screen_enabled"
+    private val keyListDensity = "key_list_density"
     private val customLabelPrefix = "label_"
     private val maxRecentApps = 15
 
@@ -36,6 +49,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val customLabels: StateFlow<Map<String, String>> = _customLabels.asStateFlow()
 
     private val _recentAppKeys = MutableStateFlow<List<String>>(loadRecentAppKeys())
+
+    private val _clockStyle = MutableStateFlow(loadClockStyle())
+    val clockStyle: StateFlow<ClockStyle> = _clockStyle.asStateFlow()
+
+    private val _lockScreenEnabled = MutableStateFlow(prefs.getBoolean(keyLockScreenEnabled, false))
+    val lockScreenEnabled: StateFlow<Boolean> = _lockScreenEnabled.asStateFlow()
+
+    private val _listDensity = MutableStateFlow(loadListDensity())
+    val listDensity: StateFlow<ListDensity> = _listDensity.asStateFlow()
 
     // All installed apps, with any custom labels applied and re-sorted.
     val allApps: StateFlow<List<AppInfo>> = combine(_rawApps, _customLabels) { raw, labels ->
@@ -82,6 +104,44 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private fun loadRecentAppKeys(): List<String> {
         val stored = prefs.getString(keyRecentApps, null) ?: return emptyList()
         return stored.split("|").filter { it.isNotBlank() }
+    }
+
+    private fun loadClockStyle(): ClockStyle {
+        val stored = prefs.getString(keyClockStyle, null) ?: return ClockStyle.ANALOG
+        return try {
+            ClockStyle.valueOf(stored)
+        } catch (_: IllegalArgumentException) {
+            ClockStyle.ANALOG
+        }
+    }
+
+    fun setClockStyle(style: ClockStyle) {
+        _clockStyle.value = style
+        prefs.edit().putString(keyClockStyle, style.name).apply()
+    }
+
+    private fun loadListDensity(): ListDensity {
+        val stored = prefs.getString(keyListDensity, null) ?: return ListDensity.NORMAL
+        return try {
+            ListDensity.valueOf(stored)
+        } catch (_: IllegalArgumentException) {
+            ListDensity.NORMAL
+        }
+    }
+
+    fun setListDensity(density: ListDensity) {
+        _listDensity.value = density
+        prefs.edit().putString(keyListDensity, density.name).apply()
+    }
+
+    fun setLockScreenEnabled(enabled: Boolean) {
+        _lockScreenEnabled.value = enabled
+        prefs.edit().putBoolean(keyLockScreenEnabled, enabled).apply()
+        if (enabled) {
+            LockScreenService.start(getApplication())
+        } else {
+            LockScreenService.stop(getApplication())
+        }
     }
 
     fun setAppVisibility(app: AppInfo, visible: Boolean) {
