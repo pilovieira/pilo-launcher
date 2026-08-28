@@ -14,9 +14,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -558,6 +560,7 @@ fun LauncherScreen(
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var appForContextMenu by remember { mutableStateOf<AppInfo?>(null) }
     val filteredApps = remember(apps, searchQuery) {
         if (searchQuery.isBlank()) {
             apps
@@ -641,7 +644,8 @@ fun LauncherScreen(
                     ) { app ->
                         AppListItem(
                             app = app,
-                            onClick = { onAppClick(app) }
+                            onClick = { onAppClick(app) },
+                            onLongClick = { appForContextMenu = app }
                         )
                     }
 
@@ -719,6 +723,84 @@ fun LauncherScreen(
             }
         }
     }
+
+    val contextApp = appForContextMenu
+    if (contextApp != null) {
+        AppContextMenuDialog(
+            app = contextApp,
+            onDismiss = { appForContextMenu = null }
+        )
+    }
+}
+
+@Composable
+fun AppContextMenuDialog(
+    app: AppInfo,
+    onDismiss: () -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = app.label)
+        },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.app_info),
+                    fontSize = 16.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            try {
+                                val intent = Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    android.net.Uri.fromParts("package", app.packageName, null)
+                                )
+                                context.startActivity(intent)
+                            } catch (_: Exception) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.could_not_open_app_info),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            onDismiss()
+                        }
+                        .padding(vertical = 12.dp)
+                )
+                Text(
+                    text = stringResource(R.string.uninstall),
+                    fontSize = 16.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            try {
+                                val intent = Intent(
+                                    Intent.ACTION_DELETE,
+                                    android.net.Uri.fromParts("package", app.packageName, null)
+                                )
+                                context.startActivity(intent)
+                            } catch (_: Exception) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.could_not_uninstall_app),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            onDismiss()
+                        }
+                        .padding(vertical = 12.dp)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.cancel))
+            }
+        }
+    )
 }
 
 @Composable
@@ -1351,16 +1433,18 @@ fun RenameAppDialog(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppListItem(
     app: AppInfo,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(vertical = 12.dp)
     ) {
         Text(
