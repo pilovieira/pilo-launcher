@@ -54,4 +54,10 @@
     <string name="list_density">App list size</string>
     <string name="list_density_compact">Compact</string>
     <string name="list_density_normal">Normal</string>
+    <string name="snake_game">Snake</string>
+    <string name="snake_score">Score: %1$d</string>
+    <string name="snake_game_over_title">Game over</string>
+    <string name="snake_game_over_message">Your score: %1$d</string>
+    <string name="snake_play_again">Play again</string>
+    <string name="snake_exit">Exit</string>
 </resources>
