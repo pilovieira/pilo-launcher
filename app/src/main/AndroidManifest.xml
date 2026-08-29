@@ -54,6 +54,7 @@
         <activity
             android:name=".snake.SnakeActivity"
             android:exported="false"
+            android:taskAffinity=".snake"
             android:theme="@style/Theme.Launcher" />
 
         <activity

@@ -56,8 +56,19 @@
     <string name="list_density_normal">Normal</string>
     <string name="snake_game">Snake</string>
     <string name="snake_score">Score: %1$d</string>
+    <string name="snake_high_score">High score: %1$d</string>
     <string name="snake_game_over_title">Game over</string>
     <string name="snake_game_over_message">Your score: %1$d</string>
     <string name="snake_play_again">Play again</string>
     <string name="snake_exit">Exit</string>
+    <string name="snake_settings">Settings</string>
+    <string name="snake_settings_title">Settings</string>
+    <string name="snake_control_swipe">Swipe on the board</string>
+    <string name="snake_control_buttons">On-screen D-pad</string>
+    <string name="snake_settings_close">Close</string>
+    <string name="snake_settings_controls_section">Controls</string>
+    <string name="snake_settings_speed_section">Speed</string>
+    <string name="snake_speed_low">Low</string>
+    <string name="snake_speed_medium">Medium</string>
+    <string name="snake_speed_high">High</string>
 </resources>
