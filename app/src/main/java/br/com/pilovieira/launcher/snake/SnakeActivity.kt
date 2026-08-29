@@ -527,6 +527,7 @@ private fun SnakeBoard(
     Box(
         modifier = modifier
             .aspectRatio(COLS.toFloat() / ROWS.toFloat())
+            .border(1.dp, Color(0xFF555555))
             .pointerInput(swipeEnabled) {
                 if (!swipeEnabled) return@pointerInput
                 var dragStart = Offset.Zero
