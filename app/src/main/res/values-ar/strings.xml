@@ -54,4 +54,24 @@
     <string name="list_density">حجم قائمة التطبيقات</string>
     <string name="list_density_compact">مضغوطة</string>
     <string name="list_density_normal">عادية</string>
+    <string name="snake_game">Snake</string>
+    <string name="snake_score">النقاط: %1$d</string>
+    <string name="snake_high_score">أعلى نتيجة: %1$d</string>
+    <string name="snake_game_over_title">انتهت اللعبة</string>
+    <string name="snake_game_over_message">نتيجتك: %1$d</string>
+    <string name="snake_play_again">العب مرة أخرى</string>
+    <string name="snake_exit">خروج</string>
+    <string name="snake_settings">الإعدادات</string>
+    <string name="snake_settings_title">الإعدادات</string>
+    <string name="snake_control_swipe">التمرير على اللوحة</string>
+    <string name="snake_control_buttons">أزرار اتجاه على الشاشة</string>
+    <string name="snake_settings_close">إغلاق</string>
+    <string name="snake_settings_controls_section">التحكم</string>
+    <string name="snake_settings_speed_section">السرعة</string>
+    <string name="snake_speed_low">منخفضة</string>
+    <string name="snake_speed_medium">متوسطة</string>
+    <string name="snake_speed_high">عالية</string>
+    <string name="snake_settings_speed_progression_section">السرعة مع الوقت</string>
+    <string name="snake_speed_progression_increasing">متزايدة (تزداد مع النقاط)</string>
+    <string name="snake_speed_progression_constant">ثابتة</string>
 </resources>

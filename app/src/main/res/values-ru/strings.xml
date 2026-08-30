@@ -54,4 +54,24 @@
     <string name="list_density">Размер списка приложений</string>
     <string name="list_density_compact">Компактный</string>
     <string name="list_density_normal">Обычный</string>
+    <string name="snake_game">Snake</string>
+    <string name="snake_score">Очки: %1$d</string>
+    <string name="snake_high_score">Рекорд: %1$d</string>
+    <string name="snake_game_over_title">Игра окончена</string>
+    <string name="snake_game_over_message">Ваш результат: %1$d</string>
+    <string name="snake_play_again">Играть снова</string>
+    <string name="snake_exit">Выход</string>
+    <string name="snake_settings">Настройки</string>
+    <string name="snake_settings_title">Настройки</string>
+    <string name="snake_control_swipe">Свайп по полю</string>
+    <string name="snake_control_buttons">Кнопки на экране</string>
+    <string name="snake_settings_close">Закрыть</string>
+    <string name="snake_settings_controls_section">Управление</string>
+    <string name="snake_settings_speed_section">Скорость</string>
+    <string name="snake_speed_low">Низкая</string>
+    <string name="snake_speed_medium">Средняя</string>
+    <string name="snake_speed_high">Высокая</string>
+    <string name="snake_settings_speed_progression_section">Скорость со временем</string>
+    <string name="snake_speed_progression_increasing">Возрастающая (растёт со счётом)</string>
+    <string name="snake_speed_progression_constant">Постоянная</string>
 </resources>
