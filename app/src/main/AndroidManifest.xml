@@ -55,6 +55,12 @@
         </activity>
 
         <activity
+            android:name=".snake.SnakeActivity"
+            android:exported="false"
+            android:taskAffinity=".snake"
+            android:theme="@style/Theme.Launcher" />
+
+        <activity
             android:name=".LockScreenActivity"
             android:exported="false"
             android:launchMode="singleInstance"

@@ -212,12 +212,25 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 } else {
                     null
                 }
-            }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+            }.plus(builtInApps())
+                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
 
             withContext(Dispatchers.Main) {
                 _rawApps.value = appList
             }
         }
+    }
+
+    // Games and other screens built into the launcher itself, shown alongside installed apps.
+    private fun builtInApps(): List<AppInfo> {
+        val context = getApplication<Application>()
+        return listOf(
+            AppInfo(
+                label = context.getString(R.string.snake_game),
+                packageName = context.packageName,
+                activityName = "br.com.pilovieira.launcher.snake.SnakeActivity"
+            )
+        )
     }
 
     private fun registerPackageReceiver() {
