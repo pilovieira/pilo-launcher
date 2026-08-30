@@ -71,4 +71,7 @@
     <string name="snake_speed_low">Low</string>
     <string name="snake_speed_medium">Medium</string>
     <string name="snake_speed_high">High</string>
+    <string name="snake_settings_speed_progression_section">Speed over time</string>
+    <string name="snake_speed_progression_increasing">Increasing (speeds up as you score)</string>
+    <string name="snake_speed_progression_constant">Constant</string>
 </resources>
