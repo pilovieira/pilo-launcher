@@ -54,4 +54,24 @@
     <string name="list_density">应用列表大小</string>
     <string name="list_density_compact">紧凑</string>
     <string name="list_density_normal">正常</string>
+    <string name="snake_game">贪吃蛇</string>
+    <string name="snake_score">得分：%1$d</string>
+    <string name="snake_high_score">最高分：%1$d</string>
+    <string name="snake_game_over_title">游戏结束</string>
+    <string name="snake_game_over_message">你的得分：%1$d</string>
+    <string name="snake_play_again">再玩一次</string>
+    <string name="snake_exit">退出</string>
+    <string name="snake_settings">设置</string>
+    <string name="snake_settings_title">设置</string>
+    <string name="snake_control_swipe">在棋盘上滑动</string>
+    <string name="snake_control_buttons">屏幕方向按钮</string>
+    <string name="snake_settings_close">关闭</string>
+    <string name="snake_settings_controls_section">操作方式</string>
+    <string name="snake_settings_speed_section">速度</string>
+    <string name="snake_speed_low">低</string>
+    <string name="snake_speed_medium">中</string>
+    <string name="snake_speed_high">高</string>
+    <string name="snake_settings_speed_progression_section">速度变化</string>
+    <string name="snake_speed_progression_increasing">递增（随得分加快）</string>
+    <string name="snake_speed_progression_constant">恒定</string>
 </resources>

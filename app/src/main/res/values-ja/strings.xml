@@ -54,4 +54,24 @@
     <string name="list_density">アプリリストのサイズ</string>
     <string name="list_density_compact">コンパクト</string>
     <string name="list_density_normal">標準</string>
+    <string name="snake_game">スネークゲーム</string>
+    <string name="snake_score">スコア: %1$d</string>
+    <string name="snake_high_score">ハイスコア: %1$d</string>
+    <string name="snake_game_over_title">ゲームオーバー</string>
+    <string name="snake_game_over_message">あなたのスコア: %1$d</string>
+    <string name="snake_play_again">もう一度プレイ</string>
+    <string name="snake_exit">終了</string>
+    <string name="snake_settings">設定</string>
+    <string name="snake_settings_title">設定</string>
+    <string name="snake_control_swipe">盤面をスワイプ</string>
+    <string name="snake_control_buttons">画面上の方向ボタン</string>
+    <string name="snake_settings_close">閉じる</string>
+    <string name="snake_settings_controls_section">操作方法</string>
+    <string name="snake_settings_speed_section">速度</string>
+    <string name="snake_speed_low">低</string>
+    <string name="snake_speed_medium">中</string>
+    <string name="snake_speed_high">高</string>
+    <string name="snake_settings_speed_progression_section">時間経過による速度</string>
+    <string name="snake_speed_progression_increasing">上昇（スコアに応じて加速）</string>
+    <string name="snake_speed_progression_constant">一定</string>
 </resources>

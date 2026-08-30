@@ -54,4 +54,24 @@
     <string name="list_density">Taille de la liste d\'apps</string>
     <string name="list_density_compact">Compacte</string>
     <string name="list_density_normal">Normale</string>
+    <string name="snake_game">Snake</string>
+    <string name="snake_score">Score : %1$d</string>
+    <string name="snake_high_score">Meilleur score : %1$d</string>
+    <string name="snake_game_over_title">Partie terminée</string>
+    <string name="snake_game_over_message">Votre score : %1$d</string>
+    <string name="snake_play_again">Rejouer</string>
+    <string name="snake_exit">Quitter</string>
+    <string name="snake_settings">Paramètres</string>
+    <string name="snake_settings_title">Paramètres</string>
+    <string name="snake_control_swipe">Glisser sur le plateau</string>
+    <string name="snake_control_buttons">Pavé directionnel à l\'écran</string>
+    <string name="snake_settings_close">Fermer</string>
+    <string name="snake_settings_controls_section">Contrôles</string>
+    <string name="snake_settings_speed_section">Vitesse</string>
+    <string name="snake_speed_low">Faible</string>
+    <string name="snake_speed_medium">Moyenne</string>
+    <string name="snake_speed_high">Élevée</string>
+    <string name="snake_settings_speed_progression_section">Vitesse dans le temps</string>
+    <string name="snake_speed_progression_increasing">Croissante (augmente avec le score)</string>
+    <string name="snake_speed_progression_constant">Constante</string>
 </resources>
