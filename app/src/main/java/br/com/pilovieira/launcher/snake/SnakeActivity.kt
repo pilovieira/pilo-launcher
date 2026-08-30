@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
@@ -496,17 +497,29 @@ private fun DirectionalPad(
     onDirection: (Direction) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val cell = 56.dp
+    val gap = 4.dp
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(gap)
     ) {
-        DirectionalButton("▲", Direction.UP, onDirection)
-        Row(horizontalArrangement = Arrangement.spacedBy(48.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+            Spacer(modifier = Modifier.size(cell))
+            DirectionalButton("▲", Direction.UP, onDirection)
+            Spacer(modifier = Modifier.size(cell))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
             DirectionalButton("◀", Direction.LEFT, onDirection)
+            Spacer(modifier = Modifier.size(cell))
             DirectionalButton("▶", Direction.RIGHT, onDirection)
         }
-        DirectionalButton("▼", Direction.DOWN, onDirection)
+        Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+            Spacer(modifier = Modifier.size(cell))
+            DirectionalButton("▼", Direction.DOWN, onDirection)
+            Spacer(modifier = Modifier.size(cell))
+        }
     }
 }
 
