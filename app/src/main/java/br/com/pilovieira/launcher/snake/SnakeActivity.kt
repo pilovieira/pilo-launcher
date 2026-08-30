@@ -58,6 +58,7 @@ private const val ROWS = 24
 private const val PREFS_NAME = "snake_prefs"
 private const val PREF_CONTROL_MODE = "control_mode"
 private const val PREF_SPEED_MODE = "speed_mode"
+private const val PREF_SPEED_PROGRESSION = "speed_progression"
 private const val PREF_HIGH_SCORE = "high_score"
 
 private enum class ControlMode {
@@ -68,6 +69,10 @@ private enum class SpeedLevel(val initialTickMs: Long, val minTickMs: Long) {
     LOW(260L, 140L),
     MEDIUM(180L, 80L),
     HIGH(120L, 50L)
+}
+
+private enum class SpeedProgression {
+    INCREASING, CONSTANT
 }
 
 private fun loadControlMode(context: Context): ControlMode {
@@ -93,6 +98,20 @@ private fun saveSpeedLevel(context: Context, level: SpeedLevel) {
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .edit()
         .putString(PREF_SPEED_MODE, level.name)
+        .apply()
+}
+
+private fun loadSpeedProgression(context: Context): SpeedProgression {
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    val name = prefs.getString(PREF_SPEED_PROGRESSION, SpeedProgression.INCREASING.name)
+    return runCatching { SpeedProgression.valueOf(name ?: SpeedProgression.INCREASING.name) }
+        .getOrDefault(SpeedProgression.INCREASING)
+}
+
+private fun saveSpeedProgression(context: Context, progression: SpeedProgression) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit()
+        .putString(PREF_SPEED_PROGRESSION, progression.name)
         .apply()
 }
 
@@ -128,13 +147,17 @@ private class SnakeGame {
     private var pendingDirection = Direction.RIGHT
 
     var speedLevel = SpeedLevel.MEDIUM
+    var speedProgression = SpeedProgression.INCREASING
 
     fun setDirection(newDirection: Direction) {
         val opposite = direction.dx == -newDirection.dx && direction.dy == -newDirection.dy
         if (!opposite) pendingDirection = newDirection
     }
 
-    fun tickDelayMs(): Long = maxOf(speedLevel.minTickMs, speedLevel.initialTickMs - (score / 3) * 10L)
+    fun tickDelayMs(): Long = when (speedProgression) {
+        SpeedProgression.CONSTANT -> speedLevel.initialTickMs
+        SpeedProgression.INCREASING -> maxOf(speedLevel.minTickMs, speedLevel.initialTickMs - (score / 3) * 10L)
+    }
 
     fun step() {
         if (gameOver) return
@@ -199,6 +222,7 @@ private fun SnakeScreen() {
 
     var controlMode by remember { mutableStateOf(loadControlMode(context)) }
     var speedLevel by remember { mutableStateOf(loadSpeedLevel(context)) }
+    var speedProgression by remember { mutableStateOf(loadSpeedProgression(context)) }
     var showSettings by remember { mutableStateOf(false) }
     var showGameOverDialog by remember { mutableStateOf(false) }
     var snakeColor by remember { mutableStateOf(Color.White) }
@@ -206,6 +230,7 @@ private fun SnakeScreen() {
     var highScore by remember { mutableStateOf(loadHighScore(context)) }
 
     game.speedLevel = speedLevel
+    game.speedProgression = speedProgression
 
     LaunchedEffect(game.gameOver) {
         while (!game.gameOver) {
@@ -406,6 +431,28 @@ private fun SnakeScreen() {
                         onSelect = {
                             speedLevel = SpeedLevel.HIGH
                             saveSpeedLevel(context, SpeedLevel.HIGH)
+                        }
+                    )
+                    Text(
+                        text = stringResource(R.string.snake_settings_speed_progression_section),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
+                    )
+                    ControlModeOption(
+                        label = stringResource(R.string.snake_speed_progression_increasing),
+                        selected = speedProgression == SpeedProgression.INCREASING,
+                        onSelect = {
+                            speedProgression = SpeedProgression.INCREASING
+                            saveSpeedProgression(context, SpeedProgression.INCREASING)
+                        }
+                    )
+                    ControlModeOption(
+                        label = stringResource(R.string.snake_speed_progression_constant),
+                        selected = speedProgression == SpeedProgression.CONSTANT,
+                        onSelect = {
+                            speedProgression = SpeedProgression.CONSTANT
+                            saveSpeedProgression(context, SpeedProgression.CONSTANT)
                         }
                     )
                 }
