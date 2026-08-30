@@ -174,12 +174,15 @@ class MainActivity : ComponentActivity() {
                         onOpenHiddenApps = {
                             currentScreen = Screen.HIDDEN_APPS
                         },
+                        onOpenRecentApps = {
+                            currentScreen = Screen.RECENTS
+                        },
                         listDensity = listDensity
                     )
                 }
                 Screen.RECENTS -> {
                     BackHandler {
-                        currentScreen = Screen.HOME
+                        currentScreen = Screen.LAUNCHER
                     }
                     RecentAppsScreen(
                         recentApps = recentApps,
@@ -190,7 +193,7 @@ class MainActivity : ComponentActivity() {
                             viewModel.clearRecentApps()
                         },
                         onBackClick = {
-                            currentScreen = Screen.HOME
+                            currentScreen = Screen.LAUNCHER
                         },
                         listDensity = listDensity
                     )
@@ -689,6 +692,7 @@ fun LauncherScreen(
     onSetDefaultClick: () -> Unit,
     hiddenAppsCount: Int,
     onOpenHiddenApps: () -> Unit,
+    onOpenRecentApps: () -> Unit,
     listDensity: ListDensity,
     modifier: Modifier = Modifier
 ) {
@@ -719,6 +723,8 @@ fun LauncherScreen(
                         val threshold = 80f
                         if (totalDrag < -threshold) {
                             onOpenHiddenApps()
+                        } else if (totalDrag > threshold) {
+                            onOpenRecentApps()
                         }
                     }
                 )
@@ -965,6 +971,22 @@ fun RecentAppsScreen(
             .fillMaxSize()
             .background(Color.Black)
             .systemBarsPadding()
+            .pointerInput(Unit) {
+                var totalDrag = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { totalDrag = 0f },
+                    onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        totalDrag += dragAmount
+                    },
+                    onDragEnd = {
+                        val threshold = 80f
+                        if (totalDrag < -threshold) {
+                            onBackClick()
+                        }
+                    }
+                )
+            }
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Row(
