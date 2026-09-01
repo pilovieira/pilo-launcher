@@ -74,4 +74,24 @@
     <string name="snake_settings_speed_progression_section">Velocidad con el tiempo</string>
     <string name="snake_speed_progression_increasing">Creciente (aumenta al puntuar)</string>
     <string name="snake_speed_progression_constant">Constante</string>
+    <string name="car_mode">Modo Coche</string>
+    <string name="car_mode_close">Cerrar</string>
+    <string name="car_mode_choose_app">Elegir app</string>
+    <string name="car_mode_remove_app">Quitar app de este espacio</string>
+    <string name="auto_car_mode">Modo Coche Automático</string>
+    <string name="auto_car_mode_desc">Activa el Modo Coche automáticamente al conectarse al estéreo Bluetooth del coche</string>
+    <string name="permission_needed_auto_car_mode">Se necesita permiso de Bluetooth para el Modo Coche Automático</string>
+    <string name="language">Idioma</string>
+    <string name="auto_car_mode_device">Dispositivo Bluetooth del coche</string>
+    <string name="auto_car_mode_device_any">Cualquier equipo de coche (mejor estimación)</string>
+    <string name="auto_car_mode_no_paired_devices">No se encontraron dispositivos Bluetooth emparejados</string>
+    <string name="usage_access">Acceso de Uso</string>
+    <string name="usage_access_desc">Concede acceso para mostrar el tiempo de uso de las apps en Recientes</string>
+    <string name="usage_access_granted">Concedido</string>
+    <string name="car_mode_slot_title">Espacio</string>
+    <string name="car_mode_choose_widget">Elegir widget</string>
+    <string name="car_mode_choose_widget_cell">Elegir widget (esta celda)</string>
+    <string name="car_mode_choose_widget_wide">Elegir widget (fila completa)</string>
+    <string name="car_mode_split_row">Dividir en dos espacios de app</string>
+    <string name="car_mode_no_widgets_found">No se encontraron widgets</string>
 </resources>

@@ -74,4 +74,24 @@
     <string name="snake_settings_speed_progression_section">السرعة مع الوقت</string>
     <string name="snake_speed_progression_increasing">متزايدة (تزداد مع النقاط)</string>
     <string name="snake_speed_progression_constant">ثابتة</string>
+    <string name="car_mode">وضع السيارة</string>
+    <string name="car_mode_close">إغلاق</string>
+    <string name="car_mode_choose_app">اختر تطبيقًا</string>
+    <string name="car_mode_remove_app">إزالة التطبيق من هذا المكان</string>
+    <string name="auto_car_mode">وضع السيارة التلقائي</string>
+    <string name="auto_car_mode_desc">يفعّل وضع السيارة تلقائيًا عند الاتصال بنظام الصوت البلوتوث في السيارة</string>
+    <string name="permission_needed_auto_car_mode">إذن البلوتوث مطلوب لوضع السيارة التلقائي</string>
+    <string name="language">اللغة</string>
+    <string name="auto_car_mode_device">جهاز البلوتوث الخاص بالسيارة</string>
+    <string name="auto_car_mode_device_any">أي نظام صوت للسيارة (تخمين تقريبي)</string>
+    <string name="auto_car_mode_no_paired_devices">لم يتم العثور على أجهزة بلوتوث مقترنة</string>
+    <string name="usage_access">إذن الوصول للاستخدام</string>
+    <string name="usage_access_desc">امنح الإذن لعرض وقت استخدام التطبيقات في الأخيرة</string>
+    <string name="usage_access_granted">تم المنح</string>
+    <string name="car_mode_slot_title">الموضع</string>
+    <string name="car_mode_choose_widget">اختر ودجت</string>
+    <string name="car_mode_choose_widget_cell">اختر ودجت (هذه الخلية)</string>
+    <string name="car_mode_choose_widget_wide">اختر ودجت (الصف بالكامل)</string>
+    <string name="car_mode_split_row">تقسيم إلى موضعين للتطبيقات</string>
+    <string name="car_mode_no_widgets_found">لم يتم العثور على ودجت</string>
 </resources>

@@ -74,5 +74,25 @@
     <string name="snake_settings_speed_progression_section">Velocidade ao longo do jogo</string>
     <string name="snake_speed_progression_increasing">Crescente (aumenta conforme pontua)</string>
     <string name="snake_speed_progression_constant">Constante</string>
+    <string name="car_mode">Modo Carro</string>
+    <string name="car_mode_close">Fechar</string>
+    <string name="car_mode_choose_app">Escolher app</string>
+    <string name="car_mode_remove_app">Remover app deste espaço</string>
+    <string name="auto_car_mode">Modo Carro Automático</string>
+    <string name="auto_car_mode_desc">Ativa o Modo Carro automaticamente ao conectar no som Bluetooth do carro</string>
+    <string name="permission_needed_auto_car_mode">Permissão de Bluetooth necessária para o Modo Carro Automático</string>
+    <string name="language">Idioma</string>
+    <string name="auto_car_mode_device">Dispositivo Bluetooth do carro</string>
+    <string name="auto_car_mode_device_any">Qualquer som automotivo (melhor estimativa)</string>
+    <string name="auto_car_mode_no_paired_devices">Nenhum dispositivo Bluetooth pareado encontrado</string>
+    <string name="usage_access">Acesso de Uso</string>
+    <string name="usage_access_desc">Conceda acesso para mostrar o tempo de uso dos apps em Recentes</string>
+    <string name="usage_access_granted">Concedido</string>
+    <string name="car_mode_slot_title">Espaço</string>
+    <string name="car_mode_choose_widget">Escolher widget</string>
+    <string name="car_mode_choose_widget_cell">Escolher widget (esta célula)</string>
+    <string name="car_mode_choose_widget_wide">Escolher widget (linha inteira)</string>
+    <string name="car_mode_split_row">Dividir em dois espaços de app</string>
+    <string name="car_mode_no_widgets_found">Nenhum widget encontrado</string>
 </resources>
 

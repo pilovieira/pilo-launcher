@@ -3,6 +3,7 @@
     <string name="no_apps_found">No apps found</string>
     <string name="no_apps_to_show">No apps to show</string>
     <string name="settings">Settings</string>
+    <string name="language">Language</string>
     <string name="back">← Back</string>
     <string name="set_as_default_launcher">Set as default launcher</string>
     <string name="set_default">Set default</string>
@@ -74,4 +75,23 @@
     <string name="snake_settings_speed_progression_section">Speed over time</string>
     <string name="snake_speed_progression_increasing">Increasing (speeds up as you score)</string>
     <string name="snake_speed_progression_constant">Constant</string>
+    <string name="car_mode">Car Mode</string>
+    <string name="car_mode_close">Close</string>
+    <string name="car_mode_choose_app">Choose app</string>
+    <string name="car_mode_remove_app">Remove from this slot</string>
+    <string name="car_mode_slot_title">Slot</string>
+    <string name="car_mode_choose_widget">Choose widget</string>
+    <string name="car_mode_choose_widget_cell">Choose widget (this cell)</string>
+    <string name="car_mode_choose_widget_wide">Choose widget (full row)</string>
+    <string name="car_mode_split_row">Split into two app slots</string>
+    <string name="car_mode_no_widgets_found">No widgets found</string>
+    <string name="auto_car_mode">Auto Car Mode</string>
+    <string name="auto_car_mode_desc">Turn on Car Mode automatically when connected to a car\'s Bluetooth stereo</string>
+    <string name="permission_needed_auto_car_mode">Bluetooth permission needed for Auto Car Mode</string>
+    <string name="auto_car_mode_device">Car Bluetooth device</string>
+    <string name="auto_car_mode_device_any">Any car stereo (best guess)</string>
+    <string name="auto_car_mode_no_paired_devices">No paired Bluetooth devices found</string>
+    <string name="usage_access">Usage Access</string>
+    <string name="usage_access_desc">Grant access to show app usage time in Recent Apps</string>
+    <string name="usage_access_granted">Granted</string>
 </resources>

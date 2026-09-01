@@ -1,12 +1,17 @@
 package br.com.pilovieira.launcher
 
 import android.app.role.RoleManager
+import android.appwidget.AppWidgetHost
+import android.appwidget.AppWidgetHostView
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProviderInfo
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -14,7 +19,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import android.graphics.Bitmap
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,10 +33,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -66,8 +76,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -76,10 +90,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Canvas
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 import java.util.Calendar
+
+private const val CAR_MODE_WIDGET_HOST_ID = 8842
 
 enum class Screen {
     HOME,
@@ -88,7 +105,8 @@ enum class Screen {
     SETTINGS,
     APP_VISIBILITY,
     HIDDEN_APPS,
-    RENAME_APPS
+    RENAME_APPS,
+    CAR_MODE
 }
 
 class MainActivity : ComponentActivity() {
@@ -99,6 +117,48 @@ class MainActivity : ComponentActivity() {
     private var isDefault by mutableStateOf(false)
     private var isFocusMode by mutableStateOf(false)
     private var hasNotificationAccess by mutableStateOf(false)
+    private var hasUsageAccess by mutableStateOf(false)
+    private var carModeEnabled by mutableStateOf(false)
+    private var autoCarModeEnabled by mutableStateOf(false)
+    private var autoCarDeviceName by mutableStateOf<String?>(null)
+    private var carModeRows by mutableStateOf<List<CarModeRowConfig>>(emptyList())
+
+    private val appWidgetManager by lazy { AppWidgetManager.getInstance(this) }
+    private val appWidgetHost by lazy { AppWidgetHost(this, CAR_MODE_WIDGET_HOST_ID) }
+    private var pendingWidgetBind: PendingWidgetBind? = null
+
+    private data class PendingWidgetBind(
+        val rowIndex: Int,
+        val position: CarModeSlotPosition,
+        val appWidgetId: Int,
+        val configure: ComponentName?
+    )
+
+    private val bindWidgetLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val pending = pendingWidgetBind
+        pendingWidgetBind = null
+        if (pending == null) return@registerForActivityResult
+        if (result.resultCode == RESULT_OK) {
+            proceedAfterWidgetBindAllowed(pending)
+        } else {
+            runCatching { appWidgetHost.deleteAppWidgetId(pending.appWidgetId) }
+        }
+    }
+
+    private val configureWidgetLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val pending = pendingWidgetBind
+        pendingWidgetBind = null
+        if (pending == null) return@registerForActivityResult
+        if (result.resultCode == RESULT_OK) {
+            finalizeWidgetBind(pending)
+        } else {
+            runCatching { appWidgetHost.deleteAppWidgetId(pending.appWidgetId) }
+        }
+    }
 
     private val roleRequestLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -124,6 +184,17 @@ class MainActivity : ComponentActivity() {
         viewModel.setLockScreenEnabled(true)
     }
 
+    private val bluetoothConnectLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            autoCarModeEnabled = true
+            CarModePrefs.setAutoEnabled(this, true)
+        } else {
+            Toast.makeText(this, getString(R.string.permission_needed_auto_car_mode), Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -131,6 +202,14 @@ class MainActivity : ComponentActivity() {
         isDefault = isDefaultLauncher()
         isFocusMode = FocusModeHelper.isFocusModeEnabled(this)
         hasNotificationAccess = NotificationAccessHelper.isNotificationListenerEnabled(this)
+        hasUsageAccess = UsageStatsHelper.hasUsageAccess(this)
+        carModeEnabled = CarModePrefs.isEnabled(this)
+        autoCarModeEnabled = CarModePrefs.isAutoEnabled(this)
+        autoCarDeviceName = CarModePrefs.getAutoDeviceName(this)
+        carModeRows = CarModePrefs.loadRows(this)
+        if (carModeEnabled) {
+            currentScreen = Screen.CAR_MODE
+        }
 
         setContent {
             val apps by viewModel.apps.collectAsState()
@@ -177,7 +256,39 @@ class MainActivity : ComponentActivity() {
                         onOpenRecentApps = {
                             currentScreen = Screen.RECENTS
                         },
+                        onOpenCarMode = {
+                            enableCarMode()
+                        },
                         listDensity = listDensity
+                    )
+                }
+                Screen.CAR_MODE -> {
+                    BackHandler {
+                        // Car Mode replaces Home: back button does nothing.
+                    }
+                    CarModeScreen(
+                        apps = apps,
+                        rows = carModeRows,
+                        appWidgetHost = appWidgetHost,
+                        appWidgetManager = appWidgetManager,
+                        onAppClick = { app ->
+                            launchApp(app)
+                        },
+                        onExitCarMode = {
+                            disableCarMode()
+                        },
+                        onAssignApp = { rowIndex, position, appKey ->
+                            assignAppToCarModeSlot(rowIndex, position, appKey)
+                        },
+                        onClearSlot = { rowIndex, position ->
+                            clearCarModeSlot(rowIndex, position)
+                        },
+                        onPickWidget = { rowIndex, position, provider ->
+                            startCarModeWidgetBind(rowIndex, position, provider)
+                        },
+                        onSplitRow = { rowIndex ->
+                            setCarModeRowWide(rowIndex, false)
+                        }
                     )
                 }
                 Screen.RECENTS -> {
@@ -207,6 +318,21 @@ class MainActivity : ComponentActivity() {
                         onFocusModeChange = { enabled ->
                             handleFocusModeToggle(enabled)
                         },
+                        autoCarModeEnabled = autoCarModeEnabled,
+                        onAutoCarModeChange = { enabled ->
+                            handleAutoCarModeToggle(enabled)
+                        },
+                        autoCarDeviceName = autoCarDeviceName,
+                        onAutoCarDeviceChange = { address, name ->
+                            autoCarDeviceName = name
+                            CarModePrefs.setAutoDevice(this@MainActivity, address, name)
+                        },
+                        currentLanguageTag = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()
+                            .toLanguageTags()
+                            .ifEmpty { null },
+                        onLanguageChange = { tag ->
+                            setAppLanguage(tag)
+                        },
                         isDefaultLauncher = isDefault,
                         onSetDefaultClick = {
                             requestSetDefaultLauncher()
@@ -233,6 +359,10 @@ class MainActivity : ComponentActivity() {
                         hasNotificationAccess = hasNotificationAccess,
                         onRequestNotificationAccess = {
                             requestNotificationAccess()
+                        },
+                        hasUsageAccess = hasUsageAccess,
+                        onRequestUsageAccess = {
+                            UsageStatsHelper.requestUsageAccess(this@MainActivity)
                         },
                         onBackClick = {
                             currentScreen = Screen.LAUNCHER
@@ -293,7 +423,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.hasCategory(Intent.CATEGORY_HOME)) {
-            currentScreen = Screen.LAUNCHER
+            currentScreen = if (carModeEnabled) Screen.CAR_MODE else Screen.LAUNCHER
         }
     }
 
@@ -302,10 +432,172 @@ class MainActivity : ComponentActivity() {
         isDefault = isDefaultLauncher()
         isFocusMode = FocusModeHelper.isFocusModeEnabled(this)
         hasNotificationAccess = NotificationAccessHelper.isNotificationListenerEnabled(this)
+        hasUsageAccess = UsageStatsHelper.hasUsageAccess(this)
         if (isFocusMode) {
             FocusModeHelper.applyRingerMode(this)
         }
         viewModel.loadApps()
+
+        // Pick up Car Mode changes made outside this activity (e.g. the Bluetooth receiver).
+        val prefsCarModeEnabled = CarModePrefs.isEnabled(this)
+        if (prefsCarModeEnabled != carModeEnabled) {
+            carModeEnabled = prefsCarModeEnabled
+            currentScreen = if (carModeEnabled) Screen.CAR_MODE else Screen.LAUNCHER
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        runCatching { appWidgetHost.startListening() }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        runCatching { appWidgetHost.stopListening() }
+    }
+
+    private fun updateCarModeRow(index: Int, config: CarModeRowConfig) {
+        CarModePrefs.saveRow(this, index, config)
+        carModeRows = CarModePrefs.loadRows(this)
+    }
+
+    private fun setCarModeRowWide(rowIndex: Int, wide: Boolean) {
+        val current = carModeRows.getOrNull(rowIndex) ?: CarModeRowConfig(false, null, null)
+        if (current.wide == wide) return
+        listOfNotNull(current.left, current.right).forEach { content ->
+            if (content is CarModeSlotContent.Widget) {
+                runCatching { appWidgetHost.deleteAppWidgetId(content.appWidgetId) }
+            }
+        }
+        updateCarModeRow(rowIndex, CarModeRowConfig(wide = wide, left = null, right = null))
+    }
+
+    private fun assignAppToCarModeSlot(rowIndex: Int, position: CarModeSlotPosition, appKey: String?) {
+        val current = carModeRows.getOrNull(rowIndex) ?: CarModeRowConfig(false, null, null)
+        if (current.wide) {
+            setCarModeRowWide(rowIndex, false)
+        }
+        val row = carModeRows.getOrNull(rowIndex) ?: CarModeRowConfig(false, null, null)
+        val content = appKey?.let { CarModeSlotContent.App(it) }
+        val updated = when (position) {
+            CarModeSlotPosition.LEFT -> row.copy(left = content)
+            CarModeSlotPosition.RIGHT -> row.copy(right = content)
+            CarModeSlotPosition.WIDE -> row
+        }
+        updateCarModeRow(rowIndex, updated)
+    }
+
+    private fun clearCarModeSlot(rowIndex: Int, position: CarModeSlotPosition) {
+        val current = carModeRows.getOrNull(rowIndex) ?: return
+        val existing = if (position == CarModeSlotPosition.RIGHT) current.right else current.left
+        if (existing is CarModeSlotContent.Widget) {
+            runCatching { appWidgetHost.deleteAppWidgetId(existing.appWidgetId) }
+        }
+        val updated = when (position) {
+            CarModeSlotPosition.LEFT -> current.copy(left = null)
+            CarModeSlotPosition.RIGHT -> current.copy(right = null)
+            CarModeSlotPosition.WIDE -> CarModeRowConfig(wide = false, left = null, right = null)
+        }
+        updateCarModeRow(rowIndex, updated)
+    }
+
+    private fun startCarModeWidgetBind(
+        rowIndex: Int,
+        position: CarModeSlotPosition,
+        provider: AppWidgetProviderInfo
+    ) {
+        if (position == CarModeSlotPosition.WIDE) {
+            setCarModeRowWide(rowIndex, true)
+        } else if (carModeRows.getOrNull(rowIndex)?.wide == true) {
+            setCarModeRowWide(rowIndex, false)
+        }
+
+        val appWidgetId = appWidgetHost.allocateAppWidgetId()
+        val allowed = runCatching {
+            appWidgetManager.bindAppWidgetIdIfAllowed(appWidgetId, provider.provider)
+        }.getOrDefault(false)
+
+        val pending = PendingWidgetBind(rowIndex, position, appWidgetId, provider.configure)
+        if (allowed) {
+            proceedAfterWidgetBindAllowed(pending)
+        } else {
+            pendingWidgetBind = pending
+            val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_BIND).apply {
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER, provider.provider)
+            }
+            bindWidgetLauncher.launch(intent)
+        }
+    }
+
+    private fun proceedAfterWidgetBindAllowed(pending: PendingWidgetBind) {
+        val configure = pending.configure
+        if (configure != null) {
+            pendingWidgetBind = pending
+            val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE).apply {
+                component = configure
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, pending.appWidgetId)
+            }
+            val launched = runCatching { configureWidgetLauncher.launch(intent) }.isSuccess
+            if (!launched) {
+                pendingWidgetBind = null
+                finalizeWidgetBind(pending)
+            }
+        } else {
+            finalizeWidgetBind(pending)
+        }
+    }
+
+    private fun finalizeWidgetBind(pending: PendingWidgetBind) {
+        val current = carModeRows.getOrNull(pending.rowIndex) ?: CarModeRowConfig(false, null, null)
+        val content = CarModeSlotContent.Widget(pending.appWidgetId)
+        val updated = when (pending.position) {
+            CarModeSlotPosition.LEFT -> current.copy(left = content)
+            CarModeSlotPosition.RIGHT -> current.copy(right = content)
+            CarModeSlotPosition.WIDE -> current.copy(left = content)
+        }
+        updateCarModeRow(pending.rowIndex, updated)
+    }
+
+    private fun enableCarMode() {
+        carModeEnabled = true
+        CarModePrefs.setEnabled(this, true)
+        currentScreen = Screen.CAR_MODE
+    }
+
+    private fun disableCarMode() {
+        carModeEnabled = false
+        CarModePrefs.setEnabled(this, false)
+        currentScreen = Screen.LAUNCHER
+    }
+
+    private fun setAppLanguage(tag: String?) {
+        val localeList = if (tag == null) {
+            androidx.core.os.LocaleListCompat.getEmptyLocaleList()
+        } else {
+            androidx.core.os.LocaleListCompat.forLanguageTags(tag)
+        }
+        androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(localeList)
+        recreate()
+    }
+
+    private fun handleAutoCarModeToggle(enabled: Boolean) {
+        if (!enabled) {
+            autoCarModeEnabled = false
+            CarModePrefs.setAutoEnabled(this, false)
+            return
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.BLUETOOTH_CONNECT) !=
+                PackageManager.PERMISSION_GRANTED
+        ) {
+            bluetoothConnectLauncher.launch(android.Manifest.permission.BLUETOOTH_CONNECT)
+            return
+        }
+
+        autoCarModeEnabled = true
+        CarModePrefs.setAutoEnabled(this, true)
     }
 
     private fun handleLockScreenToggle(enabled: Boolean) {
@@ -390,13 +682,13 @@ class MainActivity : ComponentActivity() {
             }
             startActivity(intent)
             viewModel.recordAppOpened(app)
-            currentScreen = Screen.HOME
+            currentScreen = if (carModeEnabled) Screen.CAR_MODE else Screen.HOME
         } catch (e: Exception) {
             val fallbackIntent = packageManager.getLaunchIntentForPackage(app.packageName)
             if (fallbackIntent != null) {
                 startActivity(fallbackIntent)
                 viewModel.recordAppOpened(app)
-                currentScreen = Screen.HOME
+                currentScreen = if (carModeEnabled) Screen.CAR_MODE else Screen.HOME
             } else {
                 Toast.makeText(this, getString(R.string.could_not_open_app, app.label), Toast.LENGTH_SHORT).show()
             }
@@ -684,6 +976,56 @@ fun SettingsIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun CarIcon(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val stroke = size.minDimension * 0.09f
+
+        // Roof / windshield
+        drawRoundRect(
+            color = Color.White,
+            topLeft = androidx.compose.ui.geometry.Offset(w * 0.28f, h * 0.06f),
+            size = androidx.compose.ui.geometry.Size(w * 0.44f, h * 0.28f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.1f, w * 0.1f),
+            style = Stroke(width = stroke)
+        )
+
+        // Body
+        drawRoundRect(
+            color = Color.White,
+            topLeft = androidx.compose.ui.geometry.Offset(w * 0.06f, h * 0.32f),
+            size = androidx.compose.ui.geometry.Size(w * 0.88f, h * 0.4f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.14f, w * 0.14f),
+            style = Stroke(width = stroke)
+        )
+
+        // Headlights
+        val headlightRadius = size.minDimension * 0.06f
+        val headlightY = h * 0.52f
+        drawCircle(color = Color.White, radius = headlightRadius, center = androidx.compose.ui.geometry.Offset(w * 0.2f, headlightY))
+        drawCircle(color = Color.White, radius = headlightRadius, center = androidx.compose.ui.geometry.Offset(w * 0.8f, headlightY))
+
+        // Wheels peeking out at the bottom
+        val wheelWidth = w * 0.16f
+        val wheelHeight = h * 0.14f
+        val wheelY = h * 0.66f
+        drawRoundRect(
+            color = Color.White,
+            topLeft = androidx.compose.ui.geometry.Offset(w * 0.1f, wheelY),
+            size = androidx.compose.ui.geometry.Size(wheelWidth, wheelHeight),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.03f, w * 0.03f)
+        )
+        drawRoundRect(
+            color = Color.White,
+            topLeft = androidx.compose.ui.geometry.Offset(w * 0.74f, wheelY),
+            size = androidx.compose.ui.geometry.Size(wheelWidth, wheelHeight),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.03f, w * 0.03f)
+        )
+    }
+}
+
+@Composable
 fun LauncherScreen(
     apps: List<AppInfo>,
     onAppClick: (AppInfo) -> Unit,
@@ -693,6 +1035,7 @@ fun LauncherScreen(
     hiddenAppsCount: Int,
     onOpenHiddenApps: () -> Unit,
     onOpenRecentApps: () -> Unit,
+    onOpenCarMode: () -> Unit,
     listDensity: ListDensity,
     modifier: Modifier = Modifier
 ) {
@@ -737,6 +1080,21 @@ fun LauncherScreen(
                     .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFF333333),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .clickable(onClick = onOpenCarMode),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CarIcon(modifier = Modifier.size(18.dp))
+                }
+                Spacer(modifier = Modifier.width(12.dp))
                 Row(
                     modifier = Modifier
                         .weight(1f)
@@ -966,6 +1324,12 @@ fun RecentAppsScreen(
     listDensity: ListDensity,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val usageTimes = remember {
+        val oneDayMs = 24L * 60 * 60 * 1000
+        UsageStatsHelper.getUsageTimeByPackage(context, System.currentTimeMillis() - oneDayMs)
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -1045,8 +1409,9 @@ fun RecentAppsScreen(
                     items = recentApps,
                     key = { it.key }
                 ) { app ->
-                    AppListItem(
+                    RecentAppListItem(
                         app = app,
+                        usageTimeMillis = usageTimes[app.packageName] ?: 0L,
                         onClick = { onAppClick(app) },
                         listDensity = listDensity
                     )
@@ -1057,9 +1422,47 @@ fun RecentAppsScreen(
 }
 
 @Composable
+fun RecentAppListItem(
+    app: AppInfo,
+    usageTimeMillis: Long,
+    onClick: () -> Unit,
+    listDensity: ListDensity = ListDensity.NORMAL,
+    modifier: Modifier = Modifier
+) {
+    val verticalPadding = if (listDensity == ListDensity.COMPACT) 6.dp else 12.dp
+    val fontSize = if (listDensity == ListDensity.COMPACT) 15.sp else 18.sp
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = verticalPadding),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = app.label,
+            color = Color.White,
+            fontSize = fontSize
+        )
+        Text(
+            text = if (usageTimeMillis > 0L) UsageStatsHelper.formatDuration(usageTimeMillis) else "",
+            color = Color.Gray,
+            fontSize = fontSize
+        )
+    }
+}
+
+@Composable
 fun SettingsScreen(
     isFocusMode: Boolean,
     onFocusModeChange: (Boolean) -> Unit,
+    autoCarModeEnabled: Boolean,
+    onAutoCarModeChange: (Boolean) -> Unit,
+    autoCarDeviceName: String?,
+    onAutoCarDeviceChange: (address: String?, name: String?) -> Unit,
+    currentLanguageTag: String?,
+    onLanguageChange: (String?) -> Unit,
     isDefaultLauncher: Boolean,
     onSetDefaultClick: () -> Unit,
     hiddenAppsCount: Int,
@@ -1073,6 +1476,8 @@ fun SettingsScreen(
     onLockScreenEnabledChange: (Boolean) -> Unit,
     hasNotificationAccess: Boolean,
     onRequestNotificationAccess: () -> Unit,
+    hasUsageAccess: Boolean,
+    onRequestUsageAccess: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1155,6 +1560,176 @@ fun SettingsScreen(
             color = Color(0xFF222222)
         )
 
+        // Auto Car Mode Setting Item
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.auto_car_mode),
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.auto_car_mode_desc),
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Switch(
+                checked = autoCarModeEnabled,
+                onCheckedChange = onAutoCarModeChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.Black,
+                    checkedTrackColor = Color.White,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFF333333),
+                    uncheckedBorderColor = Color.Transparent
+                )
+            )
+        }
+
+        if (autoCarModeEnabled) {
+            var showDevicePicker by remember { mutableStateOf(false) }
+            val context = LocalContext.current
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showDevicePicker = true }
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.auto_car_mode_device),
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = autoCarDeviceName ?: stringResource(R.string.auto_car_mode_device_any),
+                        color = Color.Gray,
+                        fontSize = 13.sp
+                    )
+                }
+
+                Text(
+                    text = stringResource(R.string.edit_arrow),
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            if (showDevicePicker) {
+                val bondedDevices = remember {
+                    runCatching {
+                        val manager = context.getSystemService(android.bluetooth.BluetoothManager::class.java)
+                        manager?.adapter?.bondedDevices?.toList() ?: emptyList()
+                    }.getOrDefault(emptyList())
+                }
+
+                AlertDialog(
+                    onDismissRequest = { showDevicePicker = false },
+                    containerColor = Color.Black,
+                    titleContentColor = Color.White,
+                    textContentColor = Color.White,
+                    title = { Text(stringResource(R.string.auto_car_mode_device)) },
+                    text = {
+                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onAutoCarDeviceChange(null, null)
+                                        showDevicePicker = false
+                                    }
+                                    .padding(vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                androidx.compose.material3.RadioButton(
+                                    selected = autoCarDeviceName == null,
+                                    onClick = {
+                                        onAutoCarDeviceChange(null, null)
+                                        showDevicePicker = false
+                                    },
+                                    colors = androidx.compose.material3.RadioButtonDefaults.colors(
+                                        selectedColor = Color.White,
+                                        unselectedColor = Color.Gray
+                                    )
+                                )
+                                Text(
+                                    text = stringResource(R.string.auto_car_mode_device_any),
+                                    color = Color.White,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                            if (bondedDevices.isEmpty()) {
+                                Text(
+                                    text = stringResource(R.string.auto_car_mode_no_paired_devices),
+                                    color = Color.Gray,
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.padding(vertical = 10.dp)
+                                )
+                            }
+                            bondedDevices.forEach { device ->
+                                val name = runCatching { device.name }.getOrNull() ?: device.address
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            onAutoCarDeviceChange(device.address, name)
+                                            showDevicePicker = false
+                                        }
+                                        .padding(vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    androidx.compose.material3.RadioButton(
+                                        selected = autoCarDeviceName == name,
+                                        onClick = {
+                                            onAutoCarDeviceChange(device.address, name)
+                                            showDevicePicker = false
+                                        },
+                                        colors = androidx.compose.material3.RadioButtonDefaults.colors(
+                                            selectedColor = Color.White,
+                                            unselectedColor = Color.Gray
+                                        )
+                                    )
+                                    Text(
+                                        text = name,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showDevicePicker = false }) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                    }
+                )
+            }
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = Color(0xFF222222)
+        )
+
         // Manage App Visibility Setting Item
         Row(
             modifier = Modifier
@@ -1179,6 +1754,136 @@ fun SettingsScreen(
                         stringResource(R.string.apps_hidden_singular, hiddenAppsCount)
                     } else {
                         stringResource(R.string.apps_hidden_plural, hiddenAppsCount)
+                    },
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+            }
+
+            Text(
+                text = stringResource(R.string.edit_arrow),
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = Color(0xFF222222)
+        )
+
+        // Language Setting Item
+        var showLanguageDialog by remember { mutableStateOf(false) }
+        val currentLanguageLabel = APP_LANGUAGES.find { it.tag == currentLanguageTag }?.label
+            ?: APP_LANGUAGES.first().label
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { showLanguageDialog = true }
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.language),
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = currentLanguageLabel,
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+            }
+
+            Text(
+                text = stringResource(R.string.edit_arrow),
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        if (showLanguageDialog) {
+            AlertDialog(
+                onDismissRequest = { showLanguageDialog = false },
+                containerColor = Color.Black,
+                titleContentColor = Color.White,
+                textContentColor = Color.White,
+                title = { Text(stringResource(R.string.language)) },
+                text = {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        APP_LANGUAGES.forEach { language ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onLanguageChange(language.tag)
+                                        showLanguageDialog = false
+                                    }
+                                    .padding(vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                androidx.compose.material3.RadioButton(
+                                    selected = language.tag == currentLanguageTag,
+                                    onClick = {
+                                        onLanguageChange(language.tag)
+                                        showLanguageDialog = false
+                                    },
+                                    colors = androidx.compose.material3.RadioButtonDefaults.colors(
+                                        selectedColor = Color.White,
+                                        unselectedColor = Color.Gray
+                                    )
+                                )
+                                Text(
+                                    text = language.label,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showLanguageDialog = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = Color(0xFF222222)
+        )
+
+        // Usage Access Setting Item
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onRequestUsageAccess)
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.usage_access),
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = if (hasUsageAccess) {
+                        stringResource(R.string.usage_access_granted)
+                    } else {
+                        stringResource(R.string.usage_access_desc)
                     },
                     color = Color.Gray,
                     fontSize = 13.sp
@@ -1553,6 +2258,587 @@ fun AppVisibilityScreen(
                     color = Color(0xFF1E1E1E),
                     thickness = 0.5.dp
                 )
+            }
+        }
+    }
+}
+
+
+@Composable
+fun CarModeAppIcon(app: AppInfo, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val bitmap = remember(app.key) {
+        runCatching {
+            val drawable = try {
+                context.packageManager.getActivityIcon(ComponentName(app.packageName, app.activityName))
+            } catch (_: Exception) {
+                context.packageManager.getApplicationIcon(app.packageName)
+            }
+            drawable.toBitmap(config = Bitmap.Config.ARGB_8888)
+        }.getOrNull()
+    }
+
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap.asImageBitmap(),
+            contentDescription = app.label,
+            contentScale = ContentScale.Fit,
+            modifier = modifier
+        )
+    } else {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            Text(
+                text = app.label.take(1).uppercase(),
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+fun CarModeScreen(
+    apps: List<AppInfo>,
+    rows: List<CarModeRowConfig>,
+    appWidgetHost: AppWidgetHost,
+    appWidgetManager: AppWidgetManager,
+    onAppClick: (AppInfo) -> Unit,
+    onExitCarMode: () -> Unit,
+    onAssignApp: (rowIndex: Int, position: CarModeSlotPosition, appKey: String?) -> Unit,
+    onClearSlot: (rowIndex: Int, position: CarModeSlotPosition) -> Unit,
+    onPickWidget: (rowIndex: Int, position: CarModeSlotPosition, provider: AppWidgetProviderInfo) -> Unit,
+    onSplitRow: (rowIndex: Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    data class SlotRef(val rowIndex: Int, val position: CarModeSlotPosition)
+
+    var actionSlot by remember { mutableStateOf<SlotRef?>(null) }
+    var appPickerSlot by remember { mutableStateOf<SlotRef?>(null) }
+    var widgetPickerSlot by remember { mutableStateOf<SlotRef?>(null) }
+
+    fun contentAt(ref: SlotRef): CarModeSlotContent? {
+        val row = rows.getOrNull(ref.rowIndex) ?: return null
+        return if (ref.position == CarModeSlotPosition.RIGHT) row.right else row.left
+    }
+
+    val widgetSlot = widgetPickerSlot
+    if (widgetSlot != null) {
+        BackHandler { widgetPickerSlot = null }
+        CarModeWidgetPickerScreen(
+            onPick = { provider ->
+                onPickWidget(widgetSlot.rowIndex, widgetSlot.position, provider)
+                widgetPickerSlot = null
+            },
+            onCancel = { widgetPickerSlot = null },
+            modifier = modifier
+        )
+        return
+    }
+
+    val appSlot = appPickerSlot
+    if (appSlot != null) {
+        val usedAppKeys = rows.flatMapIndexed { rowIndex, row ->
+            listOfNotNull(
+                (row.left as? CarModeSlotContent.App)?.appKey?.takeIf {
+                    !(rowIndex == appSlot.rowIndex && appSlot.position == CarModeSlotPosition.LEFT)
+                },
+                (row.right as? CarModeSlotContent.App)?.appKey?.takeIf {
+                    !(rowIndex == appSlot.rowIndex && appSlot.position == CarModeSlotPosition.RIGHT)
+                }
+            )
+        }.toSet()
+
+        BackHandler { appPickerSlot = null }
+        CarModePickerScreen(
+            apps = apps,
+            excludedKeys = usedAppKeys,
+            onPick = { app ->
+                onAssignApp(appSlot.rowIndex, appSlot.position, app.key)
+                appPickerSlot = null
+            },
+            onCancel = { appPickerSlot = null },
+            modifier = modifier
+        )
+        return
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .systemBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.car_mode),
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            Box(
+                modifier = Modifier
+                    .border(width = 1.dp, color = Color(0xFF333333), shape = RoundedCornerShape(10.dp))
+                    .clickable(onClick = onExitCarMode)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.car_mode_close),
+                    color = Color.White,
+                    fontSize = 14.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            for (rowIndex in 0 until CAR_MODE_ROW_COUNT) {
+                val row = rows.getOrNull(rowIndex) ?: CarModeRowConfig(false, null, null)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (row.wide) {
+                        CarModeCell(
+                            content = row.left,
+                            apps = apps,
+                            appWidgetHost = appWidgetHost,
+                            appWidgetManager = appWidgetManager,
+                            onClick = {
+                                val app = (row.left as? CarModeSlotContent.App)
+                                    ?.let { content -> apps.find { it.key == content.appKey } }
+                                if (app != null) onAppClick(app)
+                                else if (row.left == null) actionSlot = SlotRef(rowIndex, CarModeSlotPosition.WIDE)
+                            },
+                            onLongClick = { actionSlot = SlotRef(rowIndex, CarModeSlotPosition.WIDE) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        )
+                    } else {
+                        for (position in listOf(CarModeSlotPosition.LEFT, CarModeSlotPosition.RIGHT)) {
+                            val content = if (position == CarModeSlotPosition.RIGHT) row.right else row.left
+                            val app = (content as? CarModeSlotContent.App)
+                                ?.let { c -> apps.find { it.key == c.appKey } }
+                            CarModeCell(
+                                content = content,
+                                apps = apps,
+                                appWidgetHost = appWidgetHost,
+                                appWidgetManager = appWidgetManager,
+                                onClick = {
+                                    if (app != null) onAppClick(app)
+                                    else if (content == null) actionSlot = SlotRef(rowIndex, position)
+                                },
+                                onLongClick = { actionSlot = SlotRef(rowIndex, position) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    val slotForAction = actionSlot
+    if (slotForAction != null) {
+        CarModeSlotActionDialog(
+            hasContent = contentAt(slotForAction) != null,
+            isWideSlot = slotForAction.position == CarModeSlotPosition.WIDE,
+            onChooseApp = {
+                actionSlot = null
+                appPickerSlot = SlotRef(slotForAction.rowIndex, slotForAction.position)
+            },
+            onChooseWidgetThisCell = {
+                actionSlot = null
+                widgetPickerSlot = SlotRef(slotForAction.rowIndex, slotForAction.position)
+            },
+            onChooseWidgetFullRow = {
+                actionSlot = null
+                widgetPickerSlot = SlotRef(slotForAction.rowIndex, CarModeSlotPosition.WIDE)
+            },
+            onSplitRow = {
+                actionSlot = null
+                onSplitRow(slotForAction.rowIndex)
+            },
+            onRemove = {
+                actionSlot = null
+                onClearSlot(slotForAction.rowIndex, slotForAction.position)
+            },
+            onDismiss = { actionSlot = null }
+        )
+    }
+}
+
+@Composable
+private fun CarModeSlotActionDialog(
+    hasContent: Boolean,
+    isWideSlot: Boolean,
+    onChooseApp: () -> Unit,
+    onChooseWidgetThisCell: () -> Unit,
+    onChooseWidgetFullRow: () -> Unit,
+    onSplitRow: () -> Unit,
+    onRemove: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.Black,
+        titleContentColor = Color.White,
+        textContentColor = Color.White,
+        title = { Text(stringResource(R.string.car_mode_slot_title)) },
+        text = {
+            Column {
+                if (isWideSlot) {
+                    CarModeActionRow(stringResource(R.string.car_mode_choose_widget), onChooseWidgetFullRow)
+                    CarModeActionRow(stringResource(R.string.car_mode_split_row), onSplitRow)
+                } else {
+                    CarModeActionRow(stringResource(R.string.car_mode_choose_app), onChooseApp)
+                    CarModeActionRow(stringResource(R.string.car_mode_choose_widget_cell), onChooseWidgetThisCell)
+                    CarModeActionRow(stringResource(R.string.car_mode_choose_widget_wide), onChooseWidgetFullRow)
+                }
+                if (hasContent) {
+                    CarModeActionRow(
+                        label = stringResource(R.string.car_mode_remove_app),
+                        onClick = onRemove,
+                        color = Color(0xFFEE5555)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
+}
+
+@Composable
+private fun CarModeActionRow(label: String, onClick: () -> Unit, color: Color = Color.White) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp)
+    ) {
+        Text(text = label, color = color, fontSize = 16.sp)
+    }
+}
+
+@Composable
+private fun CarModeCell(
+    content: CarModeSlotContent?,
+    apps: List<AppInfo>,
+    appWidgetHost: AppWidgetHost,
+    appWidgetManager: AppWidgetManager,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .border(width = 1.dp, color = Color(0xFF333333), shape = RoundedCornerShape(12.dp))
+    ) {
+        when (content) {
+            is CarModeSlotContent.Widget -> {
+                CarModeWidgetView(
+                    appWidgetId = content.appWidgetId,
+                    appWidgetHost = appWidgetHost,
+                    appWidgetManager = appWidgetManager,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                        .size(24.dp)
+                        .background(Color(0x99000000), RoundedCornerShape(6.dp))
+                        .clickable(onClick = onLongClick),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "⋮", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            is CarModeSlotContent.App -> {
+                val app = apps.find { it.key == content.appKey }
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                        .padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    if (app != null) {
+                        CarModeAppIcon(app = app, modifier = Modifier.fillMaxSize().aspectRatio(1f))
+                    }
+                }
+            }
+            null -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                        .padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "+",
+                        color = Color(0xFF555555),
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CarModeWidgetView(
+    appWidgetId: Int,
+    appWidgetHost: AppWidgetHost,
+    appWidgetManager: AppWidgetManager,
+    modifier: Modifier = Modifier
+) {
+    val info = remember(appWidgetId) { runCatching { appWidgetManager.getAppWidgetInfo(appWidgetId) }.getOrNull() }
+    if (info == null) {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            Text(text = "!", color = Color.Gray, fontSize = 20.sp)
+        }
+        return
+    }
+    BoxWithConstraints(modifier = modifier) {
+        val widthDp = maxWidth.value.toInt()
+        val heightDp = maxHeight.value.toInt()
+        AndroidView(
+            factory = { ctx ->
+                appWidgetHost.createView(ctx, appWidgetId, info).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    if (widthDp > 0 && heightDp > 0) {
+                        updateAppWidgetSize(null, widthDp, heightDp, widthDp, heightDp)
+                    }
+                }
+            },
+            update = { view ->
+                if (widthDp > 0 && heightDp > 0) {
+                    view.updateAppWidgetSize(null, widthDp, heightDp, widthDp, heightDp)
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
+private fun WidgetPreviewImage(provider: AppWidgetProviderInfo, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val bitmap = remember(provider) {
+        runCatching {
+            val drawable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                provider.loadPreviewImage(context, 0)
+                    ?: context.packageManager.getApplicationIcon(provider.provider.packageName)
+            } else {
+                context.packageManager.getApplicationIcon(provider.provider.packageName)
+            }
+            drawable.toBitmap(config = Bitmap.Config.ARGB_8888)
+        }.getOrNull()
+    }
+
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap.asImageBitmap(),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = modifier.padding(6.dp)
+        )
+    } else {
+        Box(modifier = modifier)
+    }
+}
+
+@Composable
+private fun CarModeWidgetPickerScreen(
+    onPick: (AppWidgetProviderInfo) -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val providers = remember {
+        runCatching { AppWidgetManager.getInstance(context).installedProviders }.getOrDefault(emptyList())
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .systemBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.back),
+                color = Color.Gray,
+                fontSize = 16.sp,
+                modifier = Modifier.clickable(onClick = onCancel)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = stringResource(R.string.car_mode_choose_widget),
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (providers.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = stringResource(R.string.car_mode_no_widgets_found),
+                    color = Color.Gray,
+                    fontSize = 16.sp
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                items(
+                    items = providers,
+                    key = { "${it.provider.flattenToString()}" }
+                ) { provider ->
+                    val label = remember(provider) {
+                        runCatching { provider.loadLabel(context.packageManager) }
+                            .getOrDefault(provider.provider.packageName)
+                    }
+                    Column {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onPick(provider) }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            WidgetPreviewImage(
+                                provider = provider,
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .background(Color(0xFF111111), RoundedCornerShape(8.dp))
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(text = label, color = Color.White, fontSize = 16.sp)
+                                Text(
+                                    text = provider.provider.packageName,
+                                    color = Color.Gray,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                        HorizontalDivider(color = Color(0xFF1E1E1E), thickness = 0.5.dp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CarModePickerScreen(
+    apps: List<AppInfo>,
+    excludedKeys: Set<String>,
+    onPick: (AppInfo) -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val availableApps = remember(apps, excludedKeys) {
+        apps.filter { app -> !excludedKeys.contains(app.key) }
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .systemBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.back),
+                color = Color.Gray,
+                fontSize = 16.sp,
+                modifier = Modifier.clickable(onClick = onCancel)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = stringResource(R.string.car_mode_choose_app),
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            items(
+                items = availableApps,
+                key = { it.key }
+            ) { app ->
+                Column {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onPick(app) }
+                            .padding(vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = app.label,
+                            color = Color.White,
+                            fontSize = 16.sp
+                        )
+                    }
+                    HorizontalDivider(color = Color(0xFF1E1E1E), thickness = 0.5.dp)
+                }
             }
         }
     }
