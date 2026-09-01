@@ -2407,10 +2407,13 @@ fun CarModeScreen(
         ) {
             for (rowIndex in 0 until CAR_MODE_ROW_COUNT) {
                 val row = rows.getOrNull(rowIndex) ?: CarModeRowConfig(false, null, null)
+                val hasWidget = row.wide ||
+                    row.left is CarModeSlotContent.Widget ||
+                    row.right is CarModeSlotContent.Widget
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .then(if (hasWidget) Modifier.weight(1f) else Modifier.aspectRatio(2f)),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     if (row.wide) {
