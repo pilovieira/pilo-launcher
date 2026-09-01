@@ -88,4 +88,10 @@
     <string name="usage_access">Acceso de Uso</string>
     <string name="usage_access_desc">Concede acceso para mostrar el tiempo de uso de las apps en Recientes</string>
     <string name="usage_access_granted">Concedido</string>
+    <string name="car_mode_slot_title">Espacio</string>
+    <string name="car_mode_choose_widget">Elegir widget</string>
+    <string name="car_mode_choose_widget_cell">Elegir widget (esta celda)</string>
+    <string name="car_mode_choose_widget_wide">Elegir widget (fila completa)</string>
+    <string name="car_mode_split_row">Dividir en dos espacios de app</string>
+    <string name="car_mode_no_widgets_found">No se encontraron widgets</string>
 </resources>

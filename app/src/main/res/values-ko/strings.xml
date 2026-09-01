@@ -88,4 +88,10 @@
     <string name="usage_access">사용 정보 접근</string>
     <string name="usage_access_desc">최근 사용한 앱에 앱 사용 시간을 표시하려면 접근 권한을 부여하세요</string>
     <string name="usage_access_granted">허용됨</string>
+    <string name="car_mode_slot_title">위치</string>
+    <string name="car_mode_choose_widget">위젯 선택</string>
+    <string name="car_mode_choose_widget_cell">위젯 선택 (이 셀)</string>
+    <string name="car_mode_choose_widget_wide">위젯 선택 (전체 행)</string>
+    <string name="car_mode_split_row">두 개의 앱 자리로 나누기</string>
+    <string name="car_mode_no_widgets_found">위젯을 찾을 수 없습니다</string>
 </resources>

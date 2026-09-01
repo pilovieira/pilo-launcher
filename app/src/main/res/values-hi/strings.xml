@@ -88,4 +88,10 @@
     <string name="usage_access">उपयोग एक्सेस</string>
     <string name="usage_access_desc">हाल के ऐप्स में ऐप के उपयोग का समय दिखाने के लिए एक्सेस दें</string>
     <string name="usage_access_granted">दिया गया</string>
+    <string name="car_mode_slot_title">स्थान</string>
+    <string name="car_mode_choose_widget">विजेट चुनें</string>
+    <string name="car_mode_choose_widget_cell">विजेट चुनें (इस सेल में)</string>
+    <string name="car_mode_choose_widget_wide">विजेट चुनें (पूरी पंक्ति में)</string>
+    <string name="car_mode_split_row">दो ऐप स्थानों में विभाजित करें</string>
+    <string name="car_mode_no_widgets_found">कोई विजेट नहीं मिला</string>
 </resources>

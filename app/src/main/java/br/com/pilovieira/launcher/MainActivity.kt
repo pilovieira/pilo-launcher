@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -32,6 +33,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -2585,15 +2587,7 @@ private fun CarModeCell(
                     verticalArrangement = Arrangement.Center
                 ) {
                     if (app != null) {
-                        CarModeAppIcon(app = app, modifier = Modifier.weight(1f).aspectRatio(1f))
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = app.label,
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
+                        CarModeAppIcon(app = app, modifier = Modifier.fillMaxSize().aspectRatio(1f))
                     }
                 }
             }
@@ -2632,12 +2626,56 @@ private fun CarModeWidgetView(
         }
         return
     }
-    AndroidView(
-        factory = { ctx ->
-            appWidgetHost.createView(ctx, appWidgetId, info)
-        },
-        modifier = modifier
-    )
+    BoxWithConstraints(modifier = modifier) {
+        val widthDp = maxWidth.value.toInt()
+        val heightDp = maxHeight.value.toInt()
+        AndroidView(
+            factory = { ctx ->
+                appWidgetHost.createView(ctx, appWidgetId, info).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    if (widthDp > 0 && heightDp > 0) {
+                        updateAppWidgetSize(null, widthDp, heightDp, widthDp, heightDp)
+                    }
+                }
+            },
+            update = { view ->
+                if (widthDp > 0 && heightDp > 0) {
+                    view.updateAppWidgetSize(null, widthDp, heightDp, widthDp, heightDp)
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
+private fun WidgetPreviewImage(provider: AppWidgetProviderInfo, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val bitmap = remember(provider) {
+        runCatching {
+            val drawable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                provider.loadPreviewImage(context, 0)
+                    ?: context.packageManager.getApplicationIcon(provider.provider.packageName)
+            } else {
+                context.packageManager.getApplicationIcon(provider.provider.packageName)
+            }
+            drawable.toBitmap(config = Bitmap.Config.ARGB_8888)
+        }.getOrNull()
+    }
+
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap.asImageBitmap(),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = modifier.padding(6.dp)
+        )
+    } else {
+        Box(modifier = modifier)
+    }
 }
 
 @Composable
@@ -2704,12 +2742,20 @@ private fun CarModeWidgetPickerScreen(
                             .getOrDefault(provider.provider.packageName)
                     }
                     Column {
-                        Box(
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onPick(provider) }
-                                .padding(vertical = 12.dp)
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            WidgetPreviewImage(
+                                provider = provider,
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .background(Color(0xFF111111), RoundedCornerShape(8.dp))
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(text = label, color = Color.White, fontSize = 16.sp)
                                 Text(

@@ -88,4 +88,10 @@
     <string name="usage_access">Dostęp do Użycia</string>
     <string name="usage_access_desc">Przyznaj dostęp, aby pokazać czas użytkowania aplikacji w Ostatnich Aplikacjach</string>
     <string name="usage_access_granted">Przyznano</string>
+    <string name="car_mode_slot_title">Miejsce</string>
+    <string name="car_mode_choose_widget">Wybierz widżet</string>
+    <string name="car_mode_choose_widget_cell">Wybierz widżet (ta komórka)</string>
+    <string name="car_mode_choose_widget_wide">Wybierz widżet (cały wiersz)</string>
+    <string name="car_mode_split_row">Podziel na dwa miejsca na aplikacje</string>
+    <string name="car_mode_no_widgets_found">Nie znaleziono widżetów</string>
 </resources>

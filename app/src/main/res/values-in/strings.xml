@@ -88,4 +88,10 @@
     <string name="usage_access">Akses Penggunaan</string>
     <string name="usage_access_desc">Berikan akses untuk menampilkan waktu penggunaan aplikasi di Aplikasi Terbaru</string>
     <string name="usage_access_granted">Diberikan</string>
+    <string name="car_mode_slot_title">Slot</string>
+    <string name="car_mode_choose_widget">Pilih widget</string>
+    <string name="car_mode_choose_widget_cell">Pilih widget (sel ini)</string>
+    <string name="car_mode_choose_widget_wide">Pilih widget (satu baris penuh)</string>
+    <string name="car_mode_split_row">Bagi menjadi dua slot aplikasi</string>
+    <string name="car_mode_no_widgets_found">Tidak ada widget ditemukan</string>
 </resources>

@@ -88,4 +88,10 @@
     <string name="usage_access">Доступ к статистике использования</string>
     <string name="usage_access_desc">Предоставьте доступ, чтобы показывать время использования приложений в разделе «Недавние»</string>
     <string name="usage_access_granted">Предоставлено</string>
+    <string name="car_mode_slot_title">Место</string>
+    <string name="car_mode_choose_widget">Выбрать виджет</string>
+    <string name="car_mode_choose_widget_cell">Выбрать виджет (эта ячейка)</string>
+    <string name="car_mode_choose_widget_wide">Выбрать виджет (вся строка)</string>
+    <string name="car_mode_split_row">Разделить на два места для приложений</string>
+    <string name="car_mode_no_widgets_found">Виджеты не найдены</string>
 </resources>

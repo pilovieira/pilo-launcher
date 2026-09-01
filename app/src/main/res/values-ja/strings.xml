@@ -88,4 +88,10 @@
     <string name="usage_access">使用状況へのアクセス</string>
     <string name="usage_access_desc">最近使ったアプリに使用時間を表示するためのアクセスを許可します</string>
     <string name="usage_access_granted">許可済み</string>
+    <string name="car_mode_slot_title">スロット</string>
+    <string name="car_mode_choose_widget">ウィジェットを選択</string>
+    <string name="car_mode_choose_widget_cell">ウィジェットを選択（このセル）</string>
+    <string name="car_mode_choose_widget_wide">ウィジェットを選択（行全体）</string>
+    <string name="car_mode_split_row">2つのアプリ枠に分割</string>
+    <string name="car_mode_no_widgets_found">ウィジェットが見つかりません</string>
 </resources>

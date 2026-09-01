@@ -88,4 +88,10 @@
     <string name="usage_access">Kullanım Erişimi</string>
     <string name="usage_access_desc">Son Kullanılan Uygulamalar\'da uygulama kullanım süresini göstermek için erişim verin</string>
     <string name="usage_access_granted">Verildi</string>
+    <string name="car_mode_slot_title">Alan</string>
+    <string name="car_mode_choose_widget">Widget seç</string>
+    <string name="car_mode_choose_widget_cell">Widget seç (bu hücre)</string>
+    <string name="car_mode_choose_widget_wide">Widget seç (tüm satır)</string>
+    <string name="car_mode_split_row">İki uygulama alanına böl</string>
+    <string name="car_mode_no_widgets_found">Widget bulunamadı</string>
 </resources>

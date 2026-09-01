@@ -88,4 +88,10 @@
     <string name="usage_access">使用情况访问权限</string>
     <string name="usage_access_desc">授予权限以在最近使用中显示应用使用时长</string>
     <string name="usage_access_granted">已授予</string>
+    <string name="car_mode_slot_title">位置</string>
+    <string name="car_mode_choose_widget">选择小组件</string>
+    <string name="car_mode_choose_widget_cell">选择小组件（此单元格）</string>
+    <string name="car_mode_choose_widget_wide">选择小组件（整行）</string>
+    <string name="car_mode_split_row">拆分为两个应用位置</string>
+    <string name="car_mode_no_widgets_found">未找到小组件</string>
 </resources>

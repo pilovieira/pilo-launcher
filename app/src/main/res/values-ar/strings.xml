@@ -88,4 +88,10 @@
     <string name="usage_access">إذن الوصول للاستخدام</string>
     <string name="usage_access_desc">امنح الإذن لعرض وقت استخدام التطبيقات في الأخيرة</string>
     <string name="usage_access_granted">تم المنح</string>
+    <string name="car_mode_slot_title">الموضع</string>
+    <string name="car_mode_choose_widget">اختر ودجت</string>
+    <string name="car_mode_choose_widget_cell">اختر ودجت (هذه الخلية)</string>
+    <string name="car_mode_choose_widget_wide">اختر ودجت (الصف بالكامل)</string>
+    <string name="car_mode_split_row">تقسيم إلى موضعين للتطبيقات</string>
+    <string name="car_mode_no_widgets_found">لم يتم العثور على ودجت</string>
 </resources>
