@@ -78,7 +78,13 @@
     <string name="car_mode">Car Mode</string>
     <string name="car_mode_close">Close</string>
     <string name="car_mode_choose_app">Choose app</string>
-    <string name="car_mode_remove_app">Remove app from this slot</string>
+    <string name="car_mode_remove_app">Remove from this slot</string>
+    <string name="car_mode_slot_title">Slot</string>
+    <string name="car_mode_choose_widget">Choose widget</string>
+    <string name="car_mode_choose_widget_cell">Choose widget (this cell)</string>
+    <string name="car_mode_choose_widget_wide">Choose widget (full row)</string>
+    <string name="car_mode_split_row">Split into two app slots</string>
+    <string name="car_mode_no_widgets_found">No widgets found</string>
     <string name="auto_car_mode">Auto Car Mode</string>
     <string name="auto_car_mode_desc">Turn on Car Mode automatically when connected to a car\'s Bluetooth stereo</string>
     <string name="permission_needed_auto_car_mode">Bluetooth permission needed for Auto Car Mode</string>
