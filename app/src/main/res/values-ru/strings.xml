@@ -74,4 +74,18 @@
     <string name="snake_settings_speed_progression_section">Скорость со временем</string>
     <string name="snake_speed_progression_increasing">Возрастающая (растёт со счётом)</string>
     <string name="snake_speed_progression_constant">Постоянная</string>
+    <string name="car_mode">Режим авто</string>
+    <string name="car_mode_close">Закрыть</string>
+    <string name="car_mode_choose_app">Выбрать приложение</string>
+    <string name="car_mode_remove_app">Убрать приложение из этого места</string>
+    <string name="auto_car_mode">Автоматический режим авто</string>
+    <string name="auto_car_mode_desc">Включает Режим авто автоматически при подключении к Bluetooth-магнитоле автомобиля</string>
+    <string name="permission_needed_auto_car_mode">Для автоматического Режима авто требуется разрешение Bluetooth</string>
+    <string name="language">Язык</string>
+    <string name="auto_car_mode_device">Bluetooth-устройство автомобиля</string>
+    <string name="auto_car_mode_device_any">Любая автомагнитола (примерное определение)</string>
+    <string name="auto_car_mode_no_paired_devices">Сопряжённые Bluetooth-устройства не найдены</string>
+    <string name="usage_access">Доступ к статистике использования</string>
+    <string name="usage_access_desc">Предоставьте доступ, чтобы показывать время использования приложений в разделе «Недавние»</string>
+    <string name="usage_access_granted">Предоставлено</string>
 </resources>

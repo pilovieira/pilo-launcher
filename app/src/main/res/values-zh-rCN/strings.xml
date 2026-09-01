@@ -74,4 +74,18 @@
     <string name="snake_settings_speed_progression_section">速度变化</string>
     <string name="snake_speed_progression_increasing">递增（随得分加快）</string>
     <string name="snake_speed_progression_constant">恒定</string>
+    <string name="car_mode">车载模式</string>
+    <string name="car_mode_close">关闭</string>
+    <string name="car_mode_choose_app">选择应用</string>
+    <string name="car_mode_remove_app">从此位置移除应用</string>
+    <string name="auto_car_mode">自动车载模式</string>
+    <string name="auto_car_mode_desc">连接到车载蓝牙音响时自动开启车载模式</string>
+    <string name="permission_needed_auto_car_mode">自动车载模式需要蓝牙权限</string>
+    <string name="language">语言</string>
+    <string name="auto_car_mode_device">车载蓝牙设备</string>
+    <string name="auto_car_mode_device_any">任意车载音响（最佳猜测）</string>
+    <string name="auto_car_mode_no_paired_devices">未找到已配对的蓝牙设备</string>
+    <string name="usage_access">使用情况访问权限</string>
+    <string name="usage_access_desc">授予权限以在最近使用中显示应用使用时长</string>
+    <string name="usage_access_granted">已授予</string>
 </resources>
