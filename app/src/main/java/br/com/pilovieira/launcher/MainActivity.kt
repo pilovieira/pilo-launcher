@@ -811,13 +811,13 @@ fun HomeScreen(
             ) {
                 Text(
                     text = WeatherHelper.weatherEmoji(weather.weatherCode),
-                    fontSize = 20.sp
+                    fontSize = 32.sp
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = stringResource(R.string.weather_temperature, weather.temperatureC.toInt()),
                     color = Color(0xFFAAAAAA),
-                    fontSize = 16.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Medium
                 )
             }
