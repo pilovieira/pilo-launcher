@@ -11,6 +11,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -120,6 +122,7 @@ class MainActivity : ComponentActivity() {
     private var hasUsageAccess by mutableStateOf(false)
     private var carModeEnabled by mutableStateOf(false)
     private var autoCarModeEnabled by mutableStateOf(false)
+    private var weather by mutableStateOf<WeatherData?>(null)
     private var autoCarDevices by mutableStateOf<List<CarModeBluetoothDevice>>(emptyList())
     private val carModeGridSize = CarModeGridSize.TWO_BY_THREE
     private var carModeRows by mutableStateOf<List<CarModeRowConfig>>(emptyList())
@@ -196,6 +199,32 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            refreshWeather()
+        }
+    }
+
+    private fun refreshWeather(force: Boolean = false) {
+        val cached = WeatherHelper.getCached(this)
+        if (cached != null) weather = cached
+        if (!force && !WeatherHelper.isStale(cached)) return
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        lifecycleScope.launch {
+            val location = WeatherHelper.getLastKnownLocation(this@MainActivity)
+                ?: WeatherHelper.requestFreshLocation(this@MainActivity)
+                ?: return@launch
+            val fetched = WeatherHelper.fetchWeather(this@MainActivity, location.first, location.second)
+            if (fetched != null) weather = fetched
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -210,6 +239,15 @@ class MainActivity : ComponentActivity() {
         carModeRows = CarModePrefs.loadRows(this, carModeGridSize)
         if (carModeEnabled) {
             currentScreen = Screen.CAR_MODE
+        }
+
+        weather = WeatherHelper.getCached(this)
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            refreshWeather()
+        } else {
+            locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION)
         }
 
         setContent {
@@ -230,6 +268,7 @@ class MainActivity : ComponentActivity() {
                     HomeScreen(
                         isFocusMode = isFocusMode,
                         clockStyle = clockStyle,
+                        weather = weather,
                         onSwipeUp = { currentScreen = Screen.LAUNCHER },
                         onSwipeDown = { currentScreen = Screen.RECENTS }
                     )
@@ -443,6 +482,7 @@ class MainActivity : ComponentActivity() {
             FocusModeHelper.applyRingerMode(this)
         }
         viewModel.loadApps()
+        refreshWeather()
 
         // Pick up Car Mode changes made outside this activity (e.g. the Bluetooth receiver).
         val prefsCarModeEnabled = CarModePrefs.isEnabled(this)
@@ -706,6 +746,7 @@ class MainActivity : ComponentActivity() {
 fun HomeScreen(
     isFocusMode: Boolean,
     clockStyle: ClockStyle,
+    weather: WeatherData?,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
     modifier: Modifier = Modifier
@@ -756,6 +797,27 @@ fun HomeScreen(
                     text = stringResource(R.string.focus_mode_on),
                     color = Color(0xFFAAAAAA),
                     fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        if (weather != null) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 32.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = WeatherHelper.weatherEmoji(weather.weatherCode),
+                    fontSize = 20.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.weather_temperature, weather.temperatureC.toInt()),
+                    color = Color(0xFFAAAAAA),
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )
             }

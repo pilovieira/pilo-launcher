@@ -94,4 +94,6 @@
     <string name="car_mode_choose_widget_wide">Widget auswählen (ganze Zeile)</string>
     <string name="car_mode_split_row">In zwei App-Plätze aufteilen</string>
     <string name="car_mode_no_widgets_found">Keine Widgets gefunden</string>
+    <string name="auto_car_mode_device_desc">Wähle alle Bluetooth-Geräte aus, die den Automodus aktivieren sollen, z. B. mehrere Autos</string>
+    <string name="weather_temperature">%1$d°C</string>
 </resources>

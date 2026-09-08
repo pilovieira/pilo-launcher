@@ -94,4 +94,6 @@
     <string name="car_mode_choose_widget_wide">위젯 선택 (전체 행)</string>
     <string name="car_mode_split_row">두 개의 앱 자리로 나누기</string>
     <string name="car_mode_no_widgets_found">위젯을 찾을 수 없습니다</string>
+    <string name="auto_car_mode_device_desc">차량 모드를 켜질 모든 블루투스 기기를 선택하세요 (예: 두 대 이상의 자동차)</string>
+    <string name="weather_temperature">%1$d°C</string>
 </resources>

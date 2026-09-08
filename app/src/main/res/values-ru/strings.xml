@@ -94,4 +94,6 @@
     <string name="car_mode_choose_widget_wide">Выбрать виджет (вся строка)</string>
     <string name="car_mode_split_row">Разделить на два места для приложений</string>
     <string name="car_mode_no_widgets_found">Виджеты не найдены</string>
+    <string name="auto_car_mode_device_desc">Выберите все Bluetooth-устройства, которые должны включать Режим авто, например для нескольких автомобилей</string>
+    <string name="weather_temperature">%1$d°C</string>
 </resources>

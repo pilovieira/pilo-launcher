@@ -24,6 +24,10 @@
     <!-- Auto Car Mode: detect when a car Bluetooth stereo connects/disconnects -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
+    <!-- Weather on the home screen -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <!-- Shows per-app usage time in Recent Apps; granted via a special Settings screen -->
     <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"

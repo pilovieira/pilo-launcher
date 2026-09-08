@@ -95,4 +95,5 @@
     <string name="usage_access">Usage Access</string>
     <string name="usage_access_desc">Grant access to show app usage time in Recent Apps</string>
     <string name="usage_access_granted">Granted</string>
+    <string name="weather_temperature">%1$d°C</string>
 </resources>
