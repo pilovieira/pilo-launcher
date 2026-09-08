@@ -30,6 +30,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -123,6 +124,7 @@ class MainActivity : ComponentActivity() {
     private var carModeEnabled by mutableStateOf(false)
     private var autoCarModeEnabled by mutableStateOf(false)
     private var weather by mutableStateOf<WeatherData?>(null)
+    private var weatherRefreshing by mutableStateOf(false)
     private var autoCarDevices by mutableStateOf<List<CarModeBluetoothDevice>>(emptyList())
     private val carModeGridSize = CarModeGridSize.TWO_BY_THREE
     private var carModeRows by mutableStateOf<List<CarModeRowConfig>>(emptyList())
@@ -216,12 +218,16 @@ class MainActivity : ComponentActivity() {
         ) {
             return
         }
+        if (weatherRefreshing) return
+        weatherRefreshing = true
         lifecycleScope.launch {
             val location = WeatherHelper.getLastKnownLocation(this@MainActivity)
                 ?: WeatherHelper.requestFreshLocation(this@MainActivity)
-                ?: return@launch
-            val fetched = WeatherHelper.fetchWeather(this@MainActivity, location.first, location.second)
-            if (fetched != null) weather = fetched
+            if (location != null) {
+                val fetched = WeatherHelper.fetchWeather(this@MainActivity, location.first, location.second)
+                if (fetched != null) weather = fetched
+            }
+            weatherRefreshing = false
         }
     }
 
@@ -269,6 +275,8 @@ class MainActivity : ComponentActivity() {
                         isFocusMode = isFocusMode,
                         clockStyle = clockStyle,
                         weather = weather,
+                        weatherRefreshing = weatherRefreshing,
+                        onRefreshWeather = { refreshWeather(force = true) },
                         onSwipeUp = { currentScreen = Screen.LAUNCHER },
                         onSwipeDown = { currentScreen = Screen.RECENTS }
                     )
@@ -747,6 +755,8 @@ fun HomeScreen(
     isFocusMode: Boolean,
     clockStyle: ClockStyle,
     weather: WeatherData?,
+    weatherRefreshing: Boolean,
+    onRefreshWeather: () -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
     modifier: Modifier = Modifier
@@ -803,20 +813,40 @@ fun HomeScreen(
         }
 
         if (weather != null) {
-            Row(
+            Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 32.dp),
-                verticalAlignment = Alignment.CenterVertically
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                WeatherIcon(code = weather.weatherCode, modifier = Modifier.size(32.dp))
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = stringResource(R.string.weather_temperature, weather.temperatureC.toInt()),
-                    color = Color(0xFFAAAAAA),
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    WeatherIcon(code = weather.weatherCode, modifier = Modifier.size(32.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.weather_temperature, weather.temperatureC.toInt()),
+                        color = Color(0xFFAAAAAA),
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .alpha(if (weatherRefreshing) 0.4f else 1f)
+                            .clickable(enabled = !weatherRefreshing, onClick = onRefreshWeather),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        RefreshIcon(modifier = Modifier.size(18.dp))
+                    }
+                }
+                if (weather.cityName != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = weather.cityName,
+                        color = Color(0xFF777777),
+                        fontSize = 13.sp
+                    )
+                }
             }
         }
     }
@@ -1037,6 +1067,39 @@ fun SettingsIcon(modifier: Modifier = Modifier) {
             radius = innerRadius * 0.55f,
             center = center
         )
+    }
+}
+
+@Composable
+fun RefreshIcon(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+        val radius = size.minDimension / 2.6f
+        val stroke = size.minDimension * 0.14f
+
+        drawArc(
+            color = Color.White,
+            startAngle = -260f,
+            sweepAngle = 260f,
+            useCenter = false,
+            topLeft = androidx.compose.ui.geometry.Offset(center.x - radius, center.y - radius),
+            size = androidx.compose.ui.geometry.Size(radius * 2f, radius * 2f),
+            style = Stroke(width = stroke, cap = StrokeCap.Round)
+        )
+
+        val angle = Math.toRadians(-260.0)
+        val tip = androidx.compose.ui.geometry.Offset(
+            center.x + (radius * cos(angle)).toFloat(),
+            center.y + (radius * sin(angle)).toFloat()
+        )
+        val arrowSize = size.minDimension * 0.22f
+        val path = androidx.compose.ui.graphics.Path().apply {
+            moveTo(tip.x - arrowSize, tip.y - arrowSize * 0.3f)
+            lineTo(tip.x + arrowSize * 0.2f, tip.y)
+            lineTo(tip.x - arrowSize * 0.3f, tip.y + arrowSize)
+            close()
+        }
+        drawPath(path, color = Color.White)
     }
 }
 

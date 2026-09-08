@@ -12,12 +12,13 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.coroutines.resume
 
-data class WeatherData(val temperatureC: Double, val weatherCode: Int, val fetchedAt: Long)
+data class WeatherData(val temperatureC: Double, val weatherCode: Int, val cityName: String?, val fetchedAt: Long)
 
 object WeatherHelper {
     private const val PREFS = "weather_prefs"
     private const val KEY_TEMP = "temp_c"
     private const val KEY_CODE = "weather_code"
+    private const val KEY_CITY = "city_name"
     private const val KEY_FETCHED_AT = "fetched_at"
     private const val CACHE_TTL_MS = 30L * 60 * 1000
 
@@ -28,6 +29,7 @@ object WeatherHelper {
         return WeatherData(
             temperatureC = prefs.getFloat(KEY_TEMP, 0f).toDouble(),
             weatherCode = prefs.getInt(KEY_CODE, 0),
+            cityName = prefs.getString(KEY_CITY, null),
             fetchedAt = fetchedAt
         )
     }
@@ -101,9 +103,11 @@ object WeatherHelper {
                 connection.disconnect()
 
                 val current = JSONObject(body).getJSONObject("current")
+                val cityName = fetchCityName(latitude, longitude)
                 val data = WeatherData(
                     temperatureC = current.getDouble("temperature_2m"),
                     weatherCode = current.getInt("weather_code"),
+                    cityName = cityName,
                     fetchedAt = System.currentTimeMillis()
                 )
                 saveCache(context, data)
@@ -112,10 +116,31 @@ object WeatherHelper {
         }
     }
 
+    private fun fetchCityName(latitude: Double, longitude: Double): String? {
+        return runCatching {
+            val url = URL(
+                "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=$latitude" +
+                    "&longitude=$longitude&localityLanguage=en"
+            )
+            val connection = url.openConnection() as HttpURLConnection
+            connection.connectTimeout = 8000
+            connection.readTimeout = 8000
+            connection.requestMethod = "GET"
+            val body = connection.inputStream.bufferedReader().use { it.readText() }
+            connection.disconnect()
+
+            val json = JSONObject(body)
+            listOf("city", "locality", "principalSubdivision")
+                .map { json.optString(it) }
+                .firstOrNull { it.isNotBlank() }
+        }.getOrNull()
+    }
+
     private fun saveCache(context: Context, data: WeatherData) {
         prefs(context).edit()
             .putFloat(KEY_TEMP, data.temperatureC.toFloat())
             .putInt(KEY_CODE, data.weatherCode)
+            .putString(KEY_CITY, data.cityName)
             .putLong(KEY_FETCHED_AT, data.fetchedAt)
             .apply()
     }
