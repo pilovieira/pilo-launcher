@@ -83,13 +83,14 @@
     <string name="car_mode_choose_widget">Choose widget</string>
     <string name="car_mode_choose_widget_cell">Choose widget (this cell)</string>
     <string name="car_mode_choose_widget_wide">Choose widget (full row)</string>
-    <string name="car_mode_split_row">Split into two app slots</string>
+    <string name="car_mode_split_row">Split back into app slots</string>
     <string name="car_mode_no_widgets_found">No widgets found</string>
     <string name="auto_car_mode">Auto Car Mode</string>
     <string name="auto_car_mode_desc">Turn on Car Mode automatically when connected to a car\'s Bluetooth stereo</string>
     <string name="permission_needed_auto_car_mode">Bluetooth permission needed for Auto Car Mode</string>
     <string name="auto_car_mode_device">Car Bluetooth device</string>
     <string name="auto_car_mode_device_any">Any car stereo (best guess)</string>
+    <string name="auto_car_mode_device_desc">Select every Bluetooth device that should turn on Car Mode, such as more than one car</string>
     <string name="auto_car_mode_no_paired_devices">No paired Bluetooth devices found</string>
     <string name="usage_access">Usage Access</string>
     <string name="usage_access_desc">Grant access to show app usage time in Recent Apps</string>

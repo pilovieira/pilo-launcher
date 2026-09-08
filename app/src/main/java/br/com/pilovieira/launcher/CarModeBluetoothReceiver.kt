@@ -53,11 +53,11 @@ class CarModeBluetoothReceiver : BroadcastReceiver() {
     }
 
     private fun matchesTargetDevice(context: Context, device: BluetoothDevice): Boolean {
-        val targetAddress = CarModePrefs.getAutoDeviceAddress(context)
-        if (targetAddress != null) {
-            return device.address == targetAddress
+        val targetDevices = CarModePrefs.getAutoDevices(context)
+        if (targetDevices.isNotEmpty()) {
+            return targetDevices.any { it.address == device.address }
         }
-        // No specific device configured: fall back to a best-effort class guess.
+        // No specific devices configured: fall back to a best-effort class guess.
         return device.bluetoothClass?.deviceClass == BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO
     }
 
