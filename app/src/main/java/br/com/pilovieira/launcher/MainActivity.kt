@@ -120,7 +120,8 @@ class MainActivity : ComponentActivity() {
     private var hasUsageAccess by mutableStateOf(false)
     private var carModeEnabled by mutableStateOf(false)
     private var autoCarModeEnabled by mutableStateOf(false)
-    private var autoCarDeviceName by mutableStateOf<String?>(null)
+    private var autoCarDevices by mutableStateOf<List<CarModeBluetoothDevice>>(emptyList())
+    private val carModeGridSize = CarModeGridSize.TWO_BY_THREE
     private var carModeRows by mutableStateOf<List<CarModeRowConfig>>(emptyList())
 
     private val appWidgetManager by lazy { AppWidgetManager.getInstance(this) }
@@ -129,7 +130,7 @@ class MainActivity : ComponentActivity() {
 
     private data class PendingWidgetBind(
         val rowIndex: Int,
-        val position: CarModeSlotPosition,
+        val column: Int,
         val appWidgetId: Int,
         val configure: ComponentName?
     )
@@ -205,8 +206,8 @@ class MainActivity : ComponentActivity() {
         hasUsageAccess = UsageStatsHelper.hasUsageAccess(this)
         carModeEnabled = CarModePrefs.isEnabled(this)
         autoCarModeEnabled = CarModePrefs.isAutoEnabled(this)
-        autoCarDeviceName = CarModePrefs.getAutoDeviceName(this)
-        carModeRows = CarModePrefs.loadRows(this)
+        autoCarDevices = CarModePrefs.getAutoDevices(this)
+        carModeRows = CarModePrefs.loadRows(this, carModeGridSize)
         if (carModeEnabled) {
             currentScreen = Screen.CAR_MODE
         }
@@ -269,6 +270,7 @@ class MainActivity : ComponentActivity() {
                     CarModeScreen(
                         apps = apps,
                         rows = carModeRows,
+                        gridSize = carModeGridSize,
                         appWidgetHost = appWidgetHost,
                         appWidgetManager = appWidgetManager,
                         onAppClick = { app ->
@@ -277,14 +279,14 @@ class MainActivity : ComponentActivity() {
                         onExitCarMode = {
                             disableCarMode()
                         },
-                        onAssignApp = { rowIndex, position, appKey ->
-                            assignAppToCarModeSlot(rowIndex, position, appKey)
+                        onAssignApp = { rowIndex, column, appKey ->
+                            assignAppToCarModeSlot(rowIndex, column, appKey)
                         },
-                        onClearSlot = { rowIndex, position ->
-                            clearCarModeSlot(rowIndex, position)
+                        onClearSlot = { rowIndex, column ->
+                            clearCarModeSlot(rowIndex, column)
                         },
-                        onPickWidget = { rowIndex, position, provider ->
-                            startCarModeWidgetBind(rowIndex, position, provider)
+                        onPickWidget = { rowIndex, column, isWide, provider ->
+                            startCarModeWidgetBind(rowIndex, column, isWide, provider)
                         },
                         onSplitRow = { rowIndex ->
                             setCarModeRowWide(rowIndex, false)
@@ -322,10 +324,14 @@ class MainActivity : ComponentActivity() {
                         onAutoCarModeChange = { enabled ->
                             handleAutoCarModeToggle(enabled)
                         },
-                        autoCarDeviceName = autoCarDeviceName,
-                        onAutoCarDeviceChange = { address, name ->
-                            autoCarDeviceName = name
-                            CarModePrefs.setAutoDevice(this@MainActivity, address, name)
+                        autoCarDevices = autoCarDevices,
+                        onToggleAutoCarDevice = { address, name, selected ->
+                            if (selected) {
+                                CarModePrefs.addAutoDevice(this@MainActivity, address, name)
+                            } else {
+                                CarModePrefs.removeAutoDevice(this@MainActivity, address)
+                            }
+                            autoCarDevices = CarModePrefs.getAutoDevices(this@MainActivity)
                         },
                         currentLanguageTag = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()
                             .toLanguageTags()
@@ -456,57 +462,59 @@ class MainActivity : ComponentActivity() {
         runCatching { appWidgetHost.stopListening() }
     }
 
+    private fun emptyCarModeRow(): CarModeRowConfig =
+        CarModeRowConfig(wide = false, slots = List(carModeGridSize.columns) { null })
+
     private fun updateCarModeRow(index: Int, config: CarModeRowConfig) {
         CarModePrefs.saveRow(this, index, config)
-        carModeRows = CarModePrefs.loadRows(this)
+        carModeRows = CarModePrefs.loadRows(this, carModeGridSize)
     }
 
     private fun setCarModeRowWide(rowIndex: Int, wide: Boolean) {
-        val current = carModeRows.getOrNull(rowIndex) ?: CarModeRowConfig(false, null, null)
+        val current = carModeRows.getOrNull(rowIndex) ?: emptyCarModeRow()
         if (current.wide == wide) return
-        listOfNotNull(current.left, current.right).forEach { content ->
+        current.slots.forEach { content ->
             if (content is CarModeSlotContent.Widget) {
                 runCatching { appWidgetHost.deleteAppWidgetId(content.appWidgetId) }
             }
         }
-        updateCarModeRow(rowIndex, CarModeRowConfig(wide = wide, left = null, right = null))
+        updateCarModeRow(rowIndex, emptyCarModeRow().copy(wide = wide))
     }
 
-    private fun assignAppToCarModeSlot(rowIndex: Int, position: CarModeSlotPosition, appKey: String?) {
-        val current = carModeRows.getOrNull(rowIndex) ?: CarModeRowConfig(false, null, null)
-        if (current.wide) {
+    private fun assignAppToCarModeSlot(rowIndex: Int, column: Int, appKey: String?) {
+        if (carModeRows.getOrNull(rowIndex)?.wide == true) {
             setCarModeRowWide(rowIndex, false)
         }
-        val row = carModeRows.getOrNull(rowIndex) ?: CarModeRowConfig(false, null, null)
-        val content = appKey?.let { CarModeSlotContent.App(it) }
-        val updated = when (position) {
-            CarModeSlotPosition.LEFT -> row.copy(left = content)
-            CarModeSlotPosition.RIGHT -> row.copy(right = content)
-            CarModeSlotPosition.WIDE -> row
+        val row = carModeRows.getOrNull(rowIndex) ?: emptyCarModeRow()
+        val newSlots = row.slots.toMutableList()
+        if (column in newSlots.indices) {
+            newSlots[column] = appKey?.let { CarModeSlotContent.App(it) }
         }
-        updateCarModeRow(rowIndex, updated)
+        updateCarModeRow(rowIndex, row.copy(slots = newSlots))
     }
 
-    private fun clearCarModeSlot(rowIndex: Int, position: CarModeSlotPosition) {
+    private fun clearCarModeSlot(rowIndex: Int, column: Int) {
         val current = carModeRows.getOrNull(rowIndex) ?: return
-        val existing = if (position == CarModeSlotPosition.RIGHT) current.right else current.left
+        val existing = current.slots.getOrNull(column)
         if (existing is CarModeSlotContent.Widget) {
             runCatching { appWidgetHost.deleteAppWidgetId(existing.appWidgetId) }
         }
-        val updated = when (position) {
-            CarModeSlotPosition.LEFT -> current.copy(left = null)
-            CarModeSlotPosition.RIGHT -> current.copy(right = null)
-            CarModeSlotPosition.WIDE -> CarModeRowConfig(wide = false, left = null, right = null)
+        if (current.wide) {
+            updateCarModeRow(rowIndex, emptyCarModeRow())
+        } else {
+            val newSlots = current.slots.toMutableList()
+            if (column in newSlots.indices) newSlots[column] = null
+            updateCarModeRow(rowIndex, current.copy(slots = newSlots))
         }
-        updateCarModeRow(rowIndex, updated)
     }
 
     private fun startCarModeWidgetBind(
         rowIndex: Int,
-        position: CarModeSlotPosition,
+        column: Int,
+        isWide: Boolean,
         provider: AppWidgetProviderInfo
     ) {
-        if (position == CarModeSlotPosition.WIDE) {
+        if (isWide) {
             setCarModeRowWide(rowIndex, true)
         } else if (carModeRows.getOrNull(rowIndex)?.wide == true) {
             setCarModeRowWide(rowIndex, false)
@@ -517,7 +525,7 @@ class MainActivity : ComponentActivity() {
             appWidgetManager.bindAppWidgetIdIfAllowed(appWidgetId, provider.provider)
         }.getOrDefault(false)
 
-        val pending = PendingWidgetBind(rowIndex, position, appWidgetId, provider.configure)
+        val pending = PendingWidgetBind(rowIndex, column, appWidgetId, provider.configure)
         if (allowed) {
             proceedAfterWidgetBindAllowed(pending)
         } else {
@@ -549,14 +557,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun finalizeWidgetBind(pending: PendingWidgetBind) {
-        val current = carModeRows.getOrNull(pending.rowIndex) ?: CarModeRowConfig(false, null, null)
-        val content = CarModeSlotContent.Widget(pending.appWidgetId)
-        val updated = when (pending.position) {
-            CarModeSlotPosition.LEFT -> current.copy(left = content)
-            CarModeSlotPosition.RIGHT -> current.copy(right = content)
-            CarModeSlotPosition.WIDE -> current.copy(left = content)
+        val current = carModeRows.getOrNull(pending.rowIndex) ?: emptyCarModeRow()
+        val newSlots = current.slots.toMutableList()
+        if (pending.column in newSlots.indices) {
+            newSlots[pending.column] = CarModeSlotContent.Widget(pending.appWidgetId)
         }
-        updateCarModeRow(pending.rowIndex, updated)
+        updateCarModeRow(pending.rowIndex, current.copy(slots = newSlots))
     }
 
     private fun enableCarMode() {
@@ -1459,8 +1465,8 @@ fun SettingsScreen(
     onFocusModeChange: (Boolean) -> Unit,
     autoCarModeEnabled: Boolean,
     onAutoCarModeChange: (Boolean) -> Unit,
-    autoCarDeviceName: String?,
-    onAutoCarDeviceChange: (address: String?, name: String?) -> Unit,
+    autoCarDevices: List<CarModeBluetoothDevice>,
+    onToggleAutoCarDevice: (address: String, name: String, selected: Boolean) -> Unit,
     currentLanguageTag: String?,
     onLanguageChange: (String?) -> Unit,
     isDefaultLauncher: Boolean,
@@ -1619,7 +1625,11 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = autoCarDeviceName ?: stringResource(R.string.auto_car_mode_device_any),
+                        text = if (autoCarDevices.isEmpty()) {
+                            stringResource(R.string.auto_car_mode_device_any)
+                        } else {
+                            autoCarDevices.joinToString(", ") { it.name }
+                        },
                         color = Color.Gray,
                         fontSize = 13.sp
                     )
@@ -1640,6 +1650,7 @@ fun SettingsScreen(
                         manager?.adapter?.bondedDevices?.toList() ?: emptyList()
                     }.getOrDefault(emptyList())
                 }
+                val selectedAddresses = autoCarDevices.map { it.address }.toSet()
 
                 AlertDialog(
                     onDismissRequest = { showDevicePicker = false },
@@ -1649,33 +1660,12 @@ fun SettingsScreen(
                     title = { Text(stringResource(R.string.auto_car_mode_device)) },
                     text = {
                         Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        onAutoCarDeviceChange(null, null)
-                                        showDevicePicker = false
-                                    }
-                                    .padding(vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                androidx.compose.material3.RadioButton(
-                                    selected = autoCarDeviceName == null,
-                                    onClick = {
-                                        onAutoCarDeviceChange(null, null)
-                                        showDevicePicker = false
-                                    },
-                                    colors = androidx.compose.material3.RadioButtonDefaults.colors(
-                                        selectedColor = Color.White,
-                                        unselectedColor = Color.Gray
-                                    )
-                                )
-                                Text(
-                                    text = stringResource(R.string.auto_car_mode_device_any),
-                                    color = Color.White,
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
-                            }
+                            Text(
+                                text = stringResource(R.string.auto_car_mode_device_desc),
+                                color = Color.Gray,
+                                fontSize = 13.sp,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
                             if (bondedDevices.isEmpty()) {
                                 Text(
                                     text = stringResource(R.string.auto_car_mode_no_paired_devices),
@@ -1686,25 +1676,25 @@ fun SettingsScreen(
                             }
                             bondedDevices.forEach { device ->
                                 val name = runCatching { device.name }.getOrNull() ?: device.address
+                                val checked = selectedAddresses.contains(device.address)
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            onAutoCarDeviceChange(device.address, name)
-                                            showDevicePicker = false
+                                            onToggleAutoCarDevice(device.address, name, !checked)
                                         }
                                         .padding(vertical = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    androidx.compose.material3.RadioButton(
-                                        selected = autoCarDeviceName == name,
-                                        onClick = {
-                                            onAutoCarDeviceChange(device.address, name)
-                                            showDevicePicker = false
+                                    androidx.compose.material3.Checkbox(
+                                        checked = checked,
+                                        onCheckedChange = { newChecked ->
+                                            onToggleAutoCarDevice(device.address, name, newChecked)
                                         },
-                                        colors = androidx.compose.material3.RadioButtonDefaults.colors(
-                                            selectedColor = Color.White,
-                                            unselectedColor = Color.Gray
+                                        colors = androidx.compose.material3.CheckboxDefaults.colors(
+                                            checkedColor = Color.White,
+                                            checkmarkColor = Color.Black,
+                                            uncheckedColor = Color.Gray
                                         )
                                     )
                                     Text(
@@ -1718,7 +1708,7 @@ fun SettingsScreen(
                     },
                     confirmButton = {
                         TextButton(onClick = { showDevicePicker = false }) {
-                            Text(stringResource(R.string.cancel))
+                            Text(stringResource(R.string.snake_settings_close))
                         }
                     }
                 )
@@ -2301,33 +2291,32 @@ fun CarModeAppIcon(app: AppInfo, modifier: Modifier = Modifier) {
 fun CarModeScreen(
     apps: List<AppInfo>,
     rows: List<CarModeRowConfig>,
+    gridSize: CarModeGridSize,
     appWidgetHost: AppWidgetHost,
     appWidgetManager: AppWidgetManager,
     onAppClick: (AppInfo) -> Unit,
     onExitCarMode: () -> Unit,
-    onAssignApp: (rowIndex: Int, position: CarModeSlotPosition, appKey: String?) -> Unit,
-    onClearSlot: (rowIndex: Int, position: CarModeSlotPosition) -> Unit,
-    onPickWidget: (rowIndex: Int, position: CarModeSlotPosition, provider: AppWidgetProviderInfo) -> Unit,
+    onAssignApp: (rowIndex: Int, column: Int, appKey: String?) -> Unit,
+    onClearSlot: (rowIndex: Int, column: Int) -> Unit,
+    onPickWidget: (rowIndex: Int, column: Int, isWide: Boolean, provider: AppWidgetProviderInfo) -> Unit,
     onSplitRow: (rowIndex: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    data class SlotRef(val rowIndex: Int, val position: CarModeSlotPosition)
+    data class SlotRef(val rowIndex: Int, val column: Int, val isWide: Boolean)
 
     var actionSlot by remember { mutableStateOf<SlotRef?>(null) }
     var appPickerSlot by remember { mutableStateOf<SlotRef?>(null) }
     var widgetPickerSlot by remember { mutableStateOf<SlotRef?>(null) }
 
-    fun contentAt(ref: SlotRef): CarModeSlotContent? {
-        val row = rows.getOrNull(ref.rowIndex) ?: return null
-        return if (ref.position == CarModeSlotPosition.RIGHT) row.right else row.left
-    }
+    fun contentAt(ref: SlotRef): CarModeSlotContent? =
+        rows.getOrNull(ref.rowIndex)?.slots?.getOrNull(ref.column)
 
     val widgetSlot = widgetPickerSlot
     if (widgetSlot != null) {
         BackHandler { widgetPickerSlot = null }
         CarModeWidgetPickerScreen(
             onPick = { provider ->
-                onPickWidget(widgetSlot.rowIndex, widgetSlot.position, provider)
+                onPickWidget(widgetSlot.rowIndex, widgetSlot.column, widgetSlot.isWide, provider)
                 widgetPickerSlot = null
             },
             onCancel = { widgetPickerSlot = null },
@@ -2339,14 +2328,11 @@ fun CarModeScreen(
     val appSlot = appPickerSlot
     if (appSlot != null) {
         val usedAppKeys = rows.flatMapIndexed { rowIndex, row ->
-            listOfNotNull(
-                (row.left as? CarModeSlotContent.App)?.appKey?.takeIf {
-                    !(rowIndex == appSlot.rowIndex && appSlot.position == CarModeSlotPosition.LEFT)
-                },
-                (row.right as? CarModeSlotContent.App)?.appKey?.takeIf {
-                    !(rowIndex == appSlot.rowIndex && appSlot.position == CarModeSlotPosition.RIGHT)
+            row.slots.mapIndexedNotNull { column, content ->
+                (content as? CarModeSlotContent.App)?.appKey?.takeIf {
+                    !(rowIndex == appSlot.rowIndex && column == appSlot.column)
                 }
-            )
+            }
         }.toSet()
 
         BackHandler { appPickerSlot = null }
@@ -2354,7 +2340,7 @@ fun CarModeScreen(
             apps = apps,
             excludedKeys = usedAppKeys,
             onPick = { app ->
-                onAssignApp(appSlot.rowIndex, appSlot.position, app.key)
+                onAssignApp(appSlot.rowIndex, appSlot.column, app.key)
                 appPickerSlot = null
             },
             onCancel = { appPickerSlot = null },
@@ -2405,37 +2391,39 @@ fun CarModeScreen(
                 .padding(top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            for (rowIndex in 0 until CAR_MODE_ROW_COUNT) {
-                val row = rows.getOrNull(rowIndex) ?: CarModeRowConfig(false, null, null)
-                val hasWidget = row.wide ||
-                    row.left is CarModeSlotContent.Widget ||
-                    row.right is CarModeSlotContent.Widget
+            for (rowIndex in rows.indices) {
+                val row = rows[rowIndex]
+                val hasWidget = row.wide || row.slots.any { it is CarModeSlotContent.Widget }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .then(if (hasWidget) Modifier.weight(1f) else Modifier.aspectRatio(2f)),
+                        .then(
+                            if (hasWidget) Modifier.weight(1f)
+                            else Modifier.aspectRatio(gridSize.columns.toFloat())
+                        ),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     if (row.wide) {
+                        val content = row.slots.getOrNull(0)
                         CarModeCell(
-                            content = row.left,
+                            content = content,
                             apps = apps,
                             appWidgetHost = appWidgetHost,
                             appWidgetManager = appWidgetManager,
                             onClick = {
-                                val app = (row.left as? CarModeSlotContent.App)
-                                    ?.let { content -> apps.find { it.key == content.appKey } }
+                                val app = (content as? CarModeSlotContent.App)
+                                    ?.let { c -> apps.find { it.key == c.appKey } }
                                 if (app != null) onAppClick(app)
-                                else if (row.left == null) actionSlot = SlotRef(rowIndex, CarModeSlotPosition.WIDE)
+                                else if (content == null) actionSlot = SlotRef(rowIndex, 0, true)
                             },
-                            onLongClick = { actionSlot = SlotRef(rowIndex, CarModeSlotPosition.WIDE) },
+                            onLongClick = { actionSlot = SlotRef(rowIndex, 0, true) },
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
                         )
                     } else {
-                        for (position in listOf(CarModeSlotPosition.LEFT, CarModeSlotPosition.RIGHT)) {
-                            val content = if (position == CarModeSlotPosition.RIGHT) row.right else row.left
+                        for (column in 0 until gridSize.columns) {
+                            val content = row.slots.getOrNull(column)
                             val app = (content as? CarModeSlotContent.App)
                                 ?.let { c -> apps.find { it.key == c.appKey } }
                             CarModeCell(
@@ -2445,9 +2433,9 @@ fun CarModeScreen(
                                 appWidgetManager = appWidgetManager,
                                 onClick = {
                                     if (app != null) onAppClick(app)
-                                    else if (content == null) actionSlot = SlotRef(rowIndex, position)
+                                    else if (content == null) actionSlot = SlotRef(rowIndex, column, false)
                                 },
-                                onLongClick = { actionSlot = SlotRef(rowIndex, position) },
+                                onLongClick = { actionSlot = SlotRef(rowIndex, column, false) },
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight()
@@ -2463,18 +2451,18 @@ fun CarModeScreen(
     if (slotForAction != null) {
         CarModeSlotActionDialog(
             hasContent = contentAt(slotForAction) != null,
-            isWideSlot = slotForAction.position == CarModeSlotPosition.WIDE,
+            isWideSlot = slotForAction.isWide,
             onChooseApp = {
                 actionSlot = null
-                appPickerSlot = SlotRef(slotForAction.rowIndex, slotForAction.position)
+                appPickerSlot = SlotRef(slotForAction.rowIndex, slotForAction.column, false)
             },
             onChooseWidgetThisCell = {
                 actionSlot = null
-                widgetPickerSlot = SlotRef(slotForAction.rowIndex, slotForAction.position)
+                widgetPickerSlot = SlotRef(slotForAction.rowIndex, slotForAction.column, false)
             },
             onChooseWidgetFullRow = {
                 actionSlot = null
-                widgetPickerSlot = SlotRef(slotForAction.rowIndex, CarModeSlotPosition.WIDE)
+                widgetPickerSlot = SlotRef(slotForAction.rowIndex, 0, true)
             },
             onSplitRow = {
                 actionSlot = null
@@ -2482,7 +2470,7 @@ fun CarModeScreen(
             },
             onRemove = {
                 actionSlot = null
-                onClearSlot(slotForAction.rowIndex, slotForAction.position)
+                onClearSlot(slotForAction.rowIndex, slotForAction.column)
             },
             onDismiss = { actionSlot = null }
         )
