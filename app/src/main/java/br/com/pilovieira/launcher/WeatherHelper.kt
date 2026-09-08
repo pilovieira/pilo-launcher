@@ -120,18 +120,5 @@ object WeatherHelper {
             .apply()
     }
 
-    /** Maps Open-Meteo's WMO weather codes to a simple emoji. */
-    fun weatherEmoji(code: Int): String = when (code) {
-        0 -> "☀️"
-        1, 2 -> "🌤️"
-        3 -> "☁️"
-        45, 48 -> "🌫️"
-        51, 53, 55, 56, 57, 80, 81, 82 -> "🌦️"
-        61, 63, 65, 66, 67 -> "🌧️"
-        71, 73, 75, 77, 85, 86 -> "❄️"
-        95, 96, 99 -> "⛈️"
-        else -> "🌡️"
-    }
-
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 }

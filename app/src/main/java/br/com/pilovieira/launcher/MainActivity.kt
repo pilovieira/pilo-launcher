@@ -809,10 +809,7 @@ fun HomeScreen(
                     .padding(bottom = 32.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = WeatherHelper.weatherEmoji(weather.weatherCode),
-                    fontSize = 32.sp
-                )
+                WeatherIcon(code = weather.weatherCode, modifier = Modifier.size(32.dp))
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = stringResource(R.string.weather_temperature, weather.temperatureC.toInt()),
@@ -1040,6 +1037,136 @@ fun SettingsIcon(modifier: Modifier = Modifier) {
             radius = innerRadius * 0.55f,
             center = center
         )
+    }
+}
+
+private enum class WeatherGlyph { CLEAR, PARTLY_CLOUDY, CLOUDY, FOG, RAIN, SNOW, STORM }
+
+private fun weatherGlyphFor(code: Int): WeatherGlyph = when (code) {
+    0 -> WeatherGlyph.CLEAR
+    1, 2 -> WeatherGlyph.PARTLY_CLOUDY
+    3 -> WeatherGlyph.CLOUDY
+    45, 48 -> WeatherGlyph.FOG
+    51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82 -> WeatherGlyph.RAIN
+    71, 73, 75, 77, 85, 86 -> WeatherGlyph.SNOW
+    95, 96, 99 -> WeatherGlyph.STORM
+    else -> WeatherGlyph.CLOUDY
+}
+
+@Composable
+fun WeatherIcon(code: Int, modifier: Modifier = Modifier) {
+    val glyph = weatherGlyphFor(code)
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        fun drawSun(cx: Float, cy: Float, radius: Float) {
+            drawCircle(color = Color.White, radius = radius, center = androidx.compose.ui.geometry.Offset(cx, cy))
+            val rayLength = radius * 0.6f
+            val rayStroke = radius * 0.24f
+            for (i in 0 until 8) {
+                val angle = Math.toRadians((i * 45.0))
+                val startR = radius * 1.25f
+                val endR = startR + rayLength
+                drawLine(
+                    color = Color.White,
+                    start = androidx.compose.ui.geometry.Offset(
+                        cx + (startR * cos(angle)).toFloat(),
+                        cy + (startR * sin(angle)).toFloat()
+                    ),
+                    end = androidx.compose.ui.geometry.Offset(
+                        cx + (endR * cos(angle)).toFloat(),
+                        cy + (endR * sin(angle)).toFloat()
+                    ),
+                    strokeWidth = rayStroke,
+                    cap = StrokeCap.Round
+                )
+            }
+        }
+
+        fun drawCloud(cx: Float, cy: Float, scale: Float) {
+            val r1 = h * 0.16f * scale
+            val r2 = h * 0.13f * scale
+            val r3 = h * 0.11f * scale
+            drawCircle(color = Color.White, radius = r1, center = androidx.compose.ui.geometry.Offset(cx, cy))
+            drawCircle(
+                color = Color.White,
+                radius = r2,
+                center = androidx.compose.ui.geometry.Offset(cx - r1 * 1.1f, cy + r1 * 0.35f)
+            )
+            drawCircle(
+                color = Color.White,
+                radius = r3,
+                center = androidx.compose.ui.geometry.Offset(cx + r1 * 1.1f, cy + r1 * 0.4f)
+            )
+            drawRoundRect(
+                color = Color.White,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - r1 * 1.5f, cy),
+                size = androidx.compose.ui.geometry.Size(r1 * 3f, r1 * 0.9f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(r1 * 0.4f, r1 * 0.4f)
+            )
+        }
+
+        when (glyph) {
+            WeatherGlyph.CLEAR -> drawSun(w / 2f, h / 2f, h * 0.22f)
+            WeatherGlyph.PARTLY_CLOUDY -> {
+                drawSun(w * 0.38f, h * 0.36f, h * 0.16f)
+                drawCloud(w * 0.55f, h * 0.6f, 1f)
+            }
+            WeatherGlyph.CLOUDY, WeatherGlyph.FOG -> {
+                drawCloud(w / 2f, h * 0.5f, 1.15f)
+                if (glyph == WeatherGlyph.FOG) {
+                    val lineY = h * 0.85f
+                    drawLine(
+                        color = Color.White,
+                        start = androidx.compose.ui.geometry.Offset(w * 0.2f, lineY),
+                        end = androidx.compose.ui.geometry.Offset(w * 0.8f, lineY),
+                        strokeWidth = h * 0.05f,
+                        cap = StrokeCap.Round
+                    )
+                }
+            }
+            WeatherGlyph.RAIN -> {
+                drawCloud(w / 2f, h * 0.4f, 1f)
+                val dropStroke = h * 0.06f
+                val dropY = h * 0.72f
+                val dropLen = h * 0.16f
+                for (dx in listOf(-0.16f, 0f, 0.16f)) {
+                    drawLine(
+                        color = Color.White,
+                        start = androidx.compose.ui.geometry.Offset(w * (0.5f + dx), dropY),
+                        end = androidx.compose.ui.geometry.Offset(w * (0.5f + dx) - dropLen * 0.3f, dropY + dropLen),
+                        strokeWidth = dropStroke,
+                        cap = StrokeCap.Round
+                    )
+                }
+            }
+            WeatherGlyph.SNOW -> {
+                drawCloud(w / 2f, h * 0.4f, 1f)
+                val dotRadius = h * 0.035f
+                val dotY = h * 0.78f
+                for (dx in listOf(-0.16f, 0f, 0.16f)) {
+                    drawCircle(
+                        color = Color.White,
+                        radius = dotRadius,
+                        center = androidx.compose.ui.geometry.Offset(w * (0.5f + dx), dotY)
+                    )
+                }
+            }
+            WeatherGlyph.STORM -> {
+                drawCloud(w / 2f, h * 0.38f, 1f)
+                val path = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(w * 0.55f, h * 0.62f)
+                    lineTo(w * 0.42f, h * 0.82f)
+                    lineTo(w * 0.52f, h * 0.82f)
+                    lineTo(w * 0.42f, h * 1.0f)
+                    lineTo(w * 0.62f, h * 0.76f)
+                    lineTo(w * 0.5f, h * 0.76f)
+                    close()
+                }
+                drawPath(path, color = Color.White)
+            }
+        }
     }
 }
 
