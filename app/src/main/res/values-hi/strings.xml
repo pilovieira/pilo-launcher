@@ -96,4 +96,17 @@
     <string name="car_mode_no_widgets_found">कोई विजेट नहीं मिला</string>
     <string name="auto_car_mode_device_desc">कार मोड चालू करने वाले सभी ब्लूटूथ डिवाइस चुनें, जैसे एक से अधिक कार</string>
     <string name="weather_temperature">%1$d°C</string>
+    <string name="weather_details_title">मौसम</string>
+    <string name="weather_details_loading">लोड हो रहा है…</string>
+    <string name="weather_details_unavailable">मौसम डेटा उपलब्ध नहीं है</string>
+    <string name="weather_feels_like">महसूस होता है %1$d°C</string>
+    <string name="weather_humidity">नमी</string>
+    <string name="weather_wind">हवा</string>
+    <string name="weather_wind_value">%1$d किमी/घंटा</string>
+    <string name="weather_precipitation">बारिश</string>
+    <string name="weather_precipitation_value">%1$.1f मिमी</string>
+    <string name="weather_precipitation_percent">%1$d%%</string>
+    <string name="weather_forecast_title">आने वाले दिन</string>
+    <string name="weather_temp_range">%1$d° / %2$d°</string>
+    <string name="weather_today">आज</string>
 </resources>

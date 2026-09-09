@@ -12,13 +12,41 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.coroutines.resume
 
-data class WeatherData(val temperatureC: Double, val weatherCode: Int, val cityName: String?, val fetchedAt: Long)
+data class WeatherData(
+    val temperatureC: Double,
+    val weatherCode: Int,
+    val cityName: String?,
+    val latitude: Double,
+    val longitude: Double,
+    val fetchedAt: Long
+)
+
+data class DailyForecast(
+    val date: String,
+    val weatherCode: Int,
+    val tempMaxC: Double,
+    val tempMinC: Double,
+    val precipitationProbability: Int
+)
+
+data class WeatherDetails(
+    val temperatureC: Double,
+    val feelsLikeC: Double,
+    val weatherCode: Int,
+    val humidity: Int,
+    val windSpeedKmh: Double,
+    val precipitationMm: Double,
+    val cityName: String?,
+    val daily: List<DailyForecast>
+)
 
 object WeatherHelper {
     private const val PREFS = "weather_prefs"
     private const val KEY_TEMP = "temp_c"
     private const val KEY_CODE = "weather_code"
     private const val KEY_CITY = "city_name"
+    private const val KEY_LAT = "latitude"
+    private const val KEY_LON = "longitude"
     private const val KEY_FETCHED_AT = "fetched_at"
     private const val CACHE_TTL_MS = 30L * 60 * 1000
 
@@ -30,6 +58,8 @@ object WeatherHelper {
             temperatureC = prefs.getFloat(KEY_TEMP, 0f).toDouble(),
             weatherCode = prefs.getInt(KEY_CODE, 0),
             cityName = prefs.getString(KEY_CITY, null),
+            latitude = prefs.getFloat(KEY_LAT, 0f).toDouble(),
+            longitude = prefs.getFloat(KEY_LON, 0f).toDouble(),
             fetchedAt = fetchedAt
         )
     }
@@ -108,10 +138,62 @@ object WeatherHelper {
                     temperatureC = current.getDouble("temperature_2m"),
                     weatherCode = current.getInt("weather_code"),
                     cityName = cityName,
+                    latitude = latitude,
+                    longitude = longitude,
                     fetchedAt = System.currentTimeMillis()
                 )
                 saveCache(context, data)
                 data
+            }.getOrNull()
+        }
+    }
+
+    suspend fun fetchWeatherDetails(context: Context, latitude: Double, longitude: Double): WeatherDetails? {
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val url = URL(
+                    "https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude" +
+                        "&current=temperature_2m,weather_code,relative_humidity_2m,apparent_temperature," +
+                        "wind_speed_10m,precipitation" +
+                        "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max" +
+                        "&timezone=auto&temperature_unit=celsius"
+                )
+                val connection = url.openConnection() as HttpURLConnection
+                connection.connectTimeout = 8000
+                connection.readTimeout = 8000
+                connection.requestMethod = "GET"
+                val body = connection.inputStream.bufferedReader().use { it.readText() }
+                connection.disconnect()
+
+                val json = JSONObject(body)
+                val current = json.getJSONObject("current")
+                val daily = json.getJSONObject("daily")
+                val dates = daily.getJSONArray("time")
+                val codes = daily.getJSONArray("weather_code")
+                val maxTemps = daily.getJSONArray("temperature_2m_max")
+                val minTemps = daily.getJSONArray("temperature_2m_min")
+                val precipProbabilities = daily.getJSONArray("precipitation_probability_max")
+
+                val forecasts = (0 until dates.length()).map { i ->
+                    DailyForecast(
+                        date = dates.getString(i),
+                        weatherCode = codes.getInt(i),
+                        tempMaxC = maxTemps.getDouble(i),
+                        tempMinC = minTemps.getDouble(i),
+                        precipitationProbability = precipProbabilities.optInt(i, 0)
+                    )
+                }
+
+                WeatherDetails(
+                    temperatureC = current.getDouble("temperature_2m"),
+                    feelsLikeC = current.getDouble("apparent_temperature"),
+                    weatherCode = current.getInt("weather_code"),
+                    humidity = current.getInt("relative_humidity_2m"),
+                    windSpeedKmh = current.getDouble("wind_speed_10m"),
+                    precipitationMm = current.getDouble("precipitation"),
+                    cityName = fetchCityName(latitude, longitude),
+                    daily = forecasts
+                )
             }.getOrNull()
         }
     }
@@ -141,6 +223,8 @@ object WeatherHelper {
             .putFloat(KEY_TEMP, data.temperatureC.toFloat())
             .putInt(KEY_CODE, data.weatherCode)
             .putString(KEY_CITY, data.cityName)
+            .putFloat(KEY_LAT, data.latitude.toFloat())
+            .putFloat(KEY_LON, data.longitude.toFloat())
             .putLong(KEY_FETCHED_AT, data.fetchedAt)
             .apply()
     }

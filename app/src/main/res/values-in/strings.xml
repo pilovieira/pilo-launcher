@@ -96,4 +96,17 @@
     <string name="car_mode_no_widgets_found">Tidak ada widget ditemukan</string>
     <string name="auto_car_mode_device_desc">Pilih semua perangkat Bluetooth yang harus mengaktifkan Mode Mobil, seperti lebih dari satu mobil</string>
     <string name="weather_temperature">%1$d°C</string>
+    <string name="weather_details_title">Cuaca</string>
+    <string name="weather_details_loading">Memuat…</string>
+    <string name="weather_details_unavailable">Data cuaca tidak tersedia</string>
+    <string name="weather_feels_like">Terasa seperti %1$d°C</string>
+    <string name="weather_humidity">Kelembapan</string>
+    <string name="weather_wind">Angin</string>
+    <string name="weather_wind_value">%1$d km/jam</string>
+    <string name="weather_precipitation">Hujan</string>
+    <string name="weather_precipitation_value">%1$.1f mm</string>
+    <string name="weather_precipitation_percent">%1$d%%</string>
+    <string name="weather_forecast_title">Hari berikutnya</string>
+    <string name="weather_temp_range">%1$d° / %2$d°</string>
+    <string name="weather_today">Hari ini</string>
 </resources>

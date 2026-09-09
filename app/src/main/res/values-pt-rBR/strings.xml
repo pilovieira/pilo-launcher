@@ -96,5 +96,18 @@
     <string name="car_mode_no_widgets_found">Nenhum widget encontrado</string>
     <string name="auto_car_mode_device_desc">Selecione todos os dispositivos Bluetooth que devem ligar o Modo Carro, como mais de um carro</string>
     <string name="weather_temperature">%1$d°C</string>
+    <string name="weather_details_title">Clima</string>
+    <string name="weather_details_loading">Carregando…</string>
+    <string name="weather_details_unavailable">Dados do clima indisponíveis</string>
+    <string name="weather_feels_like">Sensação de %1$d°C</string>
+    <string name="weather_humidity">Umidade</string>
+    <string name="weather_wind">Vento</string>
+    <string name="weather_wind_value">%1$d km/h</string>
+    <string name="weather_precipitation">Chuva</string>
+    <string name="weather_precipitation_value">%1$.1f mm</string>
+    <string name="weather_precipitation_percent">%1$d%%</string>
+    <string name="weather_forecast_title">Próximos dias</string>
+    <string name="weather_temp_range">%1$d° / %2$d°</string>
+    <string name="weather_today">Hoje</string>
 </resources>
 

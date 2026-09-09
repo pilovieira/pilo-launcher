@@ -96,4 +96,17 @@
     <string name="car_mode_no_widgets_found">Виджеты не найдены</string>
     <string name="auto_car_mode_device_desc">Выберите все Bluetooth-устройства, которые должны включать Режим авто, например для нескольких автомобилей</string>
     <string name="weather_temperature">%1$d°C</string>
+    <string name="weather_details_title">Погода</string>
+    <string name="weather_details_loading">Загрузка…</string>
+    <string name="weather_details_unavailable">Данные о погоде недоступны</string>
+    <string name="weather_feels_like">Ощущается как %1$d°C</string>
+    <string name="weather_humidity">Влажность</string>
+    <string name="weather_wind">Ветер</string>
+    <string name="weather_wind_value">%1$d км/ч</string>
+    <string name="weather_precipitation">Дождь</string>
+    <string name="weather_precipitation_value">%1$.1f мм</string>
+    <string name="weather_precipitation_percent">%1$d%%</string>
+    <string name="weather_forecast_title">Ближайшие дни</string>
+    <string name="weather_temp_range">%1$d° / %2$d°</string>
+    <string name="weather_today">Сегодня</string>
 </resources>

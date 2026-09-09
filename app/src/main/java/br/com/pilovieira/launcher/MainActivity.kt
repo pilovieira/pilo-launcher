@@ -109,7 +109,8 @@ enum class Screen {
     APP_VISIBILITY,
     HIDDEN_APPS,
     RENAME_APPS,
-    CAR_MODE
+    CAR_MODE,
+    WEATHER_DETAILS
 }
 
 class MainActivity : ComponentActivity() {
@@ -125,6 +126,8 @@ class MainActivity : ComponentActivity() {
     private var autoCarModeEnabled by mutableStateOf(false)
     private var weather by mutableStateOf<WeatherData?>(null)
     private var weatherRefreshing by mutableStateOf(false)
+    private var weatherDetails by mutableStateOf<WeatherDetails?>(null)
+    private var weatherDetailsLoading by mutableStateOf(false)
     private var autoCarDevices by mutableStateOf<List<CarModeBluetoothDevice>>(emptyList())
     private val carModeGridSize = CarModeGridSize.TWO_BY_THREE
     private var carModeRows by mutableStateOf<List<CarModeRowConfig>>(emptyList())
@@ -231,6 +234,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun openWeatherDetails() {
+        currentScreen = Screen.WEATHER_DETAILS
+        if (weatherDetailsLoading) return
+        weatherDetailsLoading = true
+        lifecycleScope.launch {
+            val cachedLocation = weather?.let { it.latitude to it.longitude }
+            val location = cachedLocation
+                ?: WeatherHelper.getLastKnownLocation(this@MainActivity)
+                ?: WeatherHelper.requestFreshLocation(this@MainActivity)
+            if (location != null) {
+                val details = WeatherHelper.fetchWeatherDetails(this@MainActivity, location.first, location.second)
+                if (details != null) weatherDetails = details
+            }
+            weatherDetailsLoading = false
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -277,8 +297,19 @@ class MainActivity : ComponentActivity() {
                         weather = weather,
                         weatherRefreshing = weatherRefreshing,
                         onRefreshWeather = { refreshWeather(force = true) },
+                        onOpenWeatherDetails = { openWeatherDetails() },
                         onSwipeUp = { currentScreen = Screen.LAUNCHER },
                         onSwipeDown = { currentScreen = Screen.RECENTS }
+                    )
+                }
+                Screen.WEATHER_DETAILS -> {
+                    BackHandler {
+                        currentScreen = Screen.HOME
+                    }
+                    WeatherDetailsScreen(
+                        details = weatherDetails,
+                        loading = weatherDetailsLoading,
+                        onBackClick = { currentScreen = Screen.HOME }
                     )
                 }
                 Screen.LAUNCHER -> {
@@ -757,6 +788,7 @@ fun HomeScreen(
     weather: WeatherData?,
     weatherRefreshing: Boolean,
     onRefreshWeather: () -> Unit,
+    onOpenWeatherDetails: () -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
     modifier: Modifier = Modifier
@@ -820,14 +852,19 @@ fun HomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    WeatherIcon(code = weather.weatherCode, modifier = Modifier.size(32.dp))
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = stringResource(R.string.weather_temperature, weather.temperatureC.toInt()),
-                        color = Color(0xFFAAAAAA),
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Row(
+                        modifier = Modifier.clickable(onClick = onOpenWeatherDetails),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        WeatherIcon(code = weather.weatherCode, modifier = Modifier.size(32.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = stringResource(R.string.weather_temperature, weather.temperatureC.toInt()),
+                            color = Color(0xFFAAAAAA),
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                     Spacer(modifier = Modifier.width(10.dp))
                     Box(
                         modifier = Modifier
@@ -3085,6 +3122,177 @@ private fun CarModePickerScreen(
             }
         }
     }
+}
+
+@Composable
+fun WeatherDetailsScreen(
+    details: WeatherDetails?,
+    loading: Boolean,
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .systemBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.back),
+                color = Color.Gray,
+                fontSize = 16.sp,
+                modifier = Modifier.clickable(onClick = onBackClick)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = stringResource(R.string.weather_details_title),
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (details == null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = if (loading) {
+                        stringResource(R.string.weather_details_loading)
+                    } else {
+                        stringResource(R.string.weather_details_unavailable)
+                    },
+                    color = Color.Gray,
+                    fontSize = 16.sp
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                if (details.cityName != null) {
+                    Text(
+                        text = details.cityName,
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    WeatherIcon(code = details.weatherCode, modifier = Modifier.size(56.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = stringResource(R.string.weather_temperature, details.temperatureC.toInt()),
+                        color = Color.White,
+                        fontSize = 44.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.weather_feels_like, details.feelsLikeC.toInt()),
+                    color = Color.Gray,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    WeatherStatTile(
+                        label = stringResource(R.string.weather_humidity),
+                        value = "${details.humidity}%"
+                    )
+                    WeatherStatTile(
+                        label = stringResource(R.string.weather_wind),
+                        value = stringResource(R.string.weather_wind_value, details.windSpeedKmh.toInt())
+                    )
+                    WeatherStatTile(
+                        label = stringResource(R.string.weather_precipitation),
+                        value = stringResource(R.string.weather_precipitation_value, details.precipitationMm)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = stringResource(R.string.weather_forecast_title),
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val todayLabel = stringResource(R.string.weather_today)
+                details.daily.forEachIndexed { index, day ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = weatherDayLabel(day.date, index, todayLabel),
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            modifier = Modifier.width(56.dp)
+                        )
+                        WeatherIcon(code = day.weatherCode, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = stringResource(R.string.weather_precipitation_percent, day.precipitationProbability),
+                            color = Color(0xFF5599FF),
+                            fontSize = 12.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.weather_temp_range,
+                                day.tempMinC.toInt(),
+                                day.tempMaxC.toInt()
+                            ),
+                            color = Color(0xFFAAAAAA),
+                            fontSize = 14.sp
+                        )
+                    }
+                    HorizontalDivider(color = Color(0xFF1E1E1E), thickness = 0.5.dp)
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeatherStatTile(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = value, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(text = label, color = Color.Gray, fontSize = 12.sp)
+    }
+}
+
+private fun weatherDayLabel(dateStr: String, index: Int, todayLabel: String): String {
+    if (index == 0) return todayLabel
+    return runCatching {
+        val parsed = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).parse(dateStr)
+        java.text.SimpleDateFormat("EEE", java.util.Locale.getDefault()).format(parsed!!)
+    }.getOrDefault(dateStr)
 }
 
 @Composable

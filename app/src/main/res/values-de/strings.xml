@@ -96,4 +96,17 @@
     <string name="car_mode_no_widgets_found">Keine Widgets gefunden</string>
     <string name="auto_car_mode_device_desc">Wähle alle Bluetooth-Geräte aus, die den Automodus aktivieren sollen, z. B. mehrere Autos</string>
     <string name="weather_temperature">%1$d°C</string>
+    <string name="weather_details_title">Wetter</string>
+    <string name="weather_details_loading">Wird geladen…</string>
+    <string name="weather_details_unavailable">Wetterdaten nicht verfügbar</string>
+    <string name="weather_feels_like">Gefühlt %1$d°C</string>
+    <string name="weather_humidity">Luftfeuchtigkeit</string>
+    <string name="weather_wind">Wind</string>
+    <string name="weather_wind_value">%1$d km/h</string>
+    <string name="weather_precipitation">Regen</string>
+    <string name="weather_precipitation_value">%1$.1f mm</string>
+    <string name="weather_precipitation_percent">%1$d%%</string>
+    <string name="weather_forecast_title">Nächste Tage</string>
+    <string name="weather_temp_range">%1$d° / %2$d°</string>
+    <string name="weather_today">Heute</string>
 </resources>
