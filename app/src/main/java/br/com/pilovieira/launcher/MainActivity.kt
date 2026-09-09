@@ -817,9 +817,16 @@ fun HomeScreen(
                 )
             }
     ) {
-        when (clockStyle) {
-            ClockStyle.ANALOG -> AnalogClock(modifier = Modifier.size(220.dp).align(Alignment.Center))
-            ClockStyle.DIGITAL -> Box(modifier = Modifier.align(Alignment.Center)) { DigitalClock() }
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            TodayDateText()
+            Spacer(modifier = Modifier.height(16.dp))
+            when (clockStyle) {
+                ClockStyle.ANALOG -> AnalogClock(modifier = Modifier.size(220.dp))
+                ClockStyle.DIGITAL -> DigitalClock()
+            }
         }
 
         if (isFocusMode) {
@@ -887,6 +894,32 @@ fun HomeScreen(
             }
         }
     }
+}
+
+@Composable
+fun TodayDateText(modifier: Modifier = Modifier) {
+    var now by remember { mutableStateOf(Calendar.getInstance()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = Calendar.getInstance()
+            kotlinx.coroutines.delay(60_000)
+        }
+    }
+
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val formatted = remember(now.timeInMillis / 60_000, locale) {
+        val formatter = java.text.SimpleDateFormat("EEEE, d MMMM", locale)
+        formatter.format(now.time).replaceFirstChar { it.titlecase(locale) }
+    }
+
+    Text(
+        text = formatted,
+        color = Color(0xFF888888),
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Medium,
+        modifier = modifier
+    )
 }
 
 @Composable
