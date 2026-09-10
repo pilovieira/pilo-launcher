@@ -109,4 +109,6 @@
     <string name="weather_forecast_title">未来几天</string>
     <string name="weather_temp_range">%1$d° / %2$d°</string>
     <string name="weather_today">今天</string>
+    <string name="search_widget">搜索小组件</string>
+    <string name="search_widget_desc">用 Google 搜索小组件替换搜索栏，输入即可直接搜索</string>
 </resources>
