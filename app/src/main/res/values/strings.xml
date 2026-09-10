@@ -95,4 +95,18 @@
     <string name="usage_access">Usage Access</string>
     <string name="usage_access_desc">Grant access to show app usage time in Recent Apps</string>
     <string name="usage_access_granted">Granted</string>
+    <string name="weather_temperature">%1$d°C</string>
+    <string name="weather_details_title">Weather</string>
+    <string name="weather_details_loading">Loading…</string>
+    <string name="weather_details_unavailable">Weather data unavailable</string>
+    <string name="weather_feels_like">Feels like %1$d°C</string>
+    <string name="weather_humidity">Humidity</string>
+    <string name="weather_wind">Wind</string>
+    <string name="weather_wind_value">%1$d km/h</string>
+    <string name="weather_precipitation">Rain</string>
+    <string name="weather_precipitation_value">%1$.1f mm</string>
+    <string name="weather_precipitation_percent">%1$d%%</string>
+    <string name="weather_forecast_title">Next days</string>
+    <string name="weather_temp_range">%1$d° / %2$d°</string>
+    <string name="weather_today">Today</string>
 </resources>

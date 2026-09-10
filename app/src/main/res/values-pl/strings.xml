@@ -94,4 +94,19 @@
     <string name="car_mode_choose_widget_wide">Wybierz widżet (cały wiersz)</string>
     <string name="car_mode_split_row">Podziel na dwa miejsca na aplikacje</string>
     <string name="car_mode_no_widgets_found">Nie znaleziono widżetów</string>
+    <string name="auto_car_mode_device_desc">Wybierz wszystkie urządzenia Bluetooth, które mają włączać Tryb Samochodowy, np. więcej niż jeden samochód</string>
+    <string name="weather_temperature">%1$d°C</string>
+    <string name="weather_details_title">Pogoda</string>
+    <string name="weather_details_loading">Ładowanie…</string>
+    <string name="weather_details_unavailable">Dane pogodowe niedostępne</string>
+    <string name="weather_feels_like">Odczuwalna %1$d°C</string>
+    <string name="weather_humidity">Wilgotność</string>
+    <string name="weather_wind">Wiatr</string>
+    <string name="weather_wind_value">%1$d km/h</string>
+    <string name="weather_precipitation">Deszcz</string>
+    <string name="weather_precipitation_value">%1$.1f mm</string>
+    <string name="weather_precipitation_percent">%1$d%%</string>
+    <string name="weather_forecast_title">Kolejne dni</string>
+    <string name="weather_temp_range">%1$d° / %2$d°</string>
+    <string name="weather_today">Dziś</string>
 </resources>

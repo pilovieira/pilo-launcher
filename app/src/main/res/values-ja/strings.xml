@@ -94,4 +94,19 @@
     <string name="car_mode_choose_widget_wide">ウィジェットを選択（行全体）</string>
     <string name="car_mode_split_row">2つのアプリ枠に分割</string>
     <string name="car_mode_no_widgets_found">ウィジェットが見つかりません</string>
+    <string name="auto_car_mode_device_desc">車内モードを起動させたいすべてのBluetoothデバイスを選択してください（複数の車で使う場合など）</string>
+    <string name="weather_temperature">%1$d°C</string>
+    <string name="weather_details_title">天気</string>
+    <string name="weather_details_loading">読み込み中…</string>
+    <string name="weather_details_unavailable">天気データが利用できません</string>
+    <string name="weather_feels_like">体感温度 %1$d°C</string>
+    <string name="weather_humidity">湿度</string>
+    <string name="weather_wind">風</string>
+    <string name="weather_wind_value">%1$d km/h</string>
+    <string name="weather_precipitation">降水量</string>
+    <string name="weather_precipitation_value">%1$.1f mm</string>
+    <string name="weather_precipitation_percent">%1$d%%</string>
+    <string name="weather_forecast_title">今後の予報</string>
+    <string name="weather_temp_range">%1$d° / %2$d°</string>
+    <string name="weather_today">今日</string>
 </resources>

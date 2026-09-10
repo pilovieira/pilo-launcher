@@ -94,4 +94,19 @@
     <string name="car_mode_choose_widget_wide">选择小组件（整行）</string>
     <string name="car_mode_split_row">拆分为两个应用位置</string>
     <string name="car_mode_no_widgets_found">未找到小组件</string>
+    <string name="auto_car_mode_device_desc">选择所有应触发车载模式的蓝牙设备，例如多辆汽车</string>
+    <string name="weather_temperature">%1$d°C</string>
+    <string name="weather_details_title">天气</string>
+    <string name="weather_details_loading">加载中…</string>
+    <string name="weather_details_unavailable">天气数据不可用</string>
+    <string name="weather_feels_like">体感温度 %1$d°C</string>
+    <string name="weather_humidity">湿度</string>
+    <string name="weather_wind">风速</string>
+    <string name="weather_wind_value">%1$d 公里/小时</string>
+    <string name="weather_precipitation">降水</string>
+    <string name="weather_precipitation_value">%1$.1f 毫米</string>
+    <string name="weather_precipitation_percent">%1$d%%</string>
+    <string name="weather_forecast_title">未来几天</string>
+    <string name="weather_temp_range">%1$d° / %2$d°</string>
+    <string name="weather_today">今天</string>
 </resources>

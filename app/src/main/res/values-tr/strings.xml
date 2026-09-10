@@ -94,4 +94,19 @@
     <string name="car_mode_choose_widget_wide">Widget seç (tüm satır)</string>
     <string name="car_mode_split_row">İki uygulama alanına böl</string>
     <string name="car_mode_no_widgets_found">Widget bulunamadı</string>
+    <string name="auto_car_mode_device_desc">Araba Modu\'nu açması gereken tüm Bluetooth cihazlarını seçin, örneğin birden fazla araba</string>
+    <string name="weather_temperature">%1$d°C</string>
+    <string name="weather_details_title">Hava Durumu</string>
+    <string name="weather_details_loading">Yükleniyor…</string>
+    <string name="weather_details_unavailable">Hava durumu verisi kullanılamıyor</string>
+    <string name="weather_feels_like">Hissedilen %1$d°C</string>
+    <string name="weather_humidity">Nem</string>
+    <string name="weather_wind">Rüzgar</string>
+    <string name="weather_wind_value">%1$d km/sa</string>
+    <string name="weather_precipitation">Yağmur</string>
+    <string name="weather_precipitation_value">%1$.1f mm</string>
+    <string name="weather_precipitation_percent">%1$d%%</string>
+    <string name="weather_forecast_title">Sonraki günler</string>
+    <string name="weather_temp_range">%1$d° / %2$d°</string>
+    <string name="weather_today">Bugün</string>
 </resources>

@@ -11,6 +11,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -28,6 +30,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -106,7 +109,8 @@ enum class Screen {
     APP_VISIBILITY,
     HIDDEN_APPS,
     RENAME_APPS,
-    CAR_MODE
+    CAR_MODE,
+    WEATHER_DETAILS
 }
 
 class MainActivity : ComponentActivity() {
@@ -120,6 +124,10 @@ class MainActivity : ComponentActivity() {
     private var hasUsageAccess by mutableStateOf(false)
     private var carModeEnabled by mutableStateOf(false)
     private var autoCarModeEnabled by mutableStateOf(false)
+    private var weather by mutableStateOf<WeatherData?>(null)
+    private var weatherRefreshing by mutableStateOf(false)
+    private var weatherDetails by mutableStateOf<WeatherDetails?>(null)
+    private var weatherDetailsLoading by mutableStateOf(false)
     private var autoCarDevices by mutableStateOf<List<CarModeBluetoothDevice>>(emptyList())
     private val carModeGridSize = CarModeGridSize.TWO_BY_THREE
     private var carModeRows by mutableStateOf<List<CarModeRowConfig>>(emptyList())
@@ -196,6 +204,53 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            refreshWeather()
+        }
+    }
+
+    private fun refreshWeather(force: Boolean = false) {
+        val cached = WeatherHelper.getCached(this)
+        if (cached != null) weather = cached
+        if (!force && !WeatherHelper.isStale(cached)) return
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        if (weatherRefreshing) return
+        weatherRefreshing = true
+        lifecycleScope.launch {
+            val location = WeatherHelper.getLastKnownLocation(this@MainActivity)
+                ?: WeatherHelper.requestFreshLocation(this@MainActivity)
+            if (location != null) {
+                val fetched = WeatherHelper.fetchWeather(this@MainActivity, location.first, location.second)
+                if (fetched != null) weather = fetched
+            }
+            weatherRefreshing = false
+        }
+    }
+
+    private fun openWeatherDetails() {
+        currentScreen = Screen.WEATHER_DETAILS
+        if (weatherDetailsLoading) return
+        weatherDetailsLoading = true
+        lifecycleScope.launch {
+            val cachedLocation = weather?.let { it.latitude to it.longitude }
+            val location = cachedLocation
+                ?: WeatherHelper.getLastKnownLocation(this@MainActivity)
+                ?: WeatherHelper.requestFreshLocation(this@MainActivity)
+            if (location != null) {
+                val details = WeatherHelper.fetchWeatherDetails(this@MainActivity, location.first, location.second)
+                if (details != null) weatherDetails = details
+            }
+            weatherDetailsLoading = false
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -210,6 +265,15 @@ class MainActivity : ComponentActivity() {
         carModeRows = CarModePrefs.loadRows(this, carModeGridSize)
         if (carModeEnabled) {
             currentScreen = Screen.CAR_MODE
+        }
+
+        weather = WeatherHelper.getCached(this)
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            refreshWeather()
+        } else {
+            locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION)
         }
 
         setContent {
@@ -230,8 +294,22 @@ class MainActivity : ComponentActivity() {
                     HomeScreen(
                         isFocusMode = isFocusMode,
                         clockStyle = clockStyle,
+                        weather = weather,
+                        weatherRefreshing = weatherRefreshing,
+                        onRefreshWeather = { refreshWeather(force = true) },
+                        onOpenWeatherDetails = { openWeatherDetails() },
                         onSwipeUp = { currentScreen = Screen.LAUNCHER },
                         onSwipeDown = { currentScreen = Screen.RECENTS }
+                    )
+                }
+                Screen.WEATHER_DETAILS -> {
+                    BackHandler {
+                        currentScreen = Screen.HOME
+                    }
+                    WeatherDetailsScreen(
+                        details = weatherDetails,
+                        loading = weatherDetailsLoading,
+                        onBackClick = { currentScreen = Screen.HOME }
                     )
                 }
                 Screen.LAUNCHER -> {
@@ -443,6 +521,7 @@ class MainActivity : ComponentActivity() {
             FocusModeHelper.applyRingerMode(this)
         }
         viewModel.loadApps()
+        refreshWeather()
 
         // Pick up Car Mode changes made outside this activity (e.g. the Bluetooth receiver).
         val prefsCarModeEnabled = CarModePrefs.isEnabled(this)
@@ -706,6 +785,10 @@ class MainActivity : ComponentActivity() {
 fun HomeScreen(
     isFocusMode: Boolean,
     clockStyle: ClockStyle,
+    weather: WeatherData?,
+    weatherRefreshing: Boolean,
+    onRefreshWeather: () -> Unit,
+    onOpenWeatherDetails: () -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
     modifier: Modifier = Modifier
@@ -734,9 +817,16 @@ fun HomeScreen(
                 )
             }
     ) {
-        when (clockStyle) {
-            ClockStyle.ANALOG -> AnalogClock(modifier = Modifier.size(220.dp).align(Alignment.Center))
-            ClockStyle.DIGITAL -> Box(modifier = Modifier.align(Alignment.Center)) { DigitalClock() }
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            TodayDateText()
+            Spacer(modifier = Modifier.height(16.dp))
+            when (clockStyle) {
+                ClockStyle.ANALOG -> AnalogClock(modifier = Modifier.size(220.dp))
+                ClockStyle.DIGITAL -> DigitalClock()
+            }
         }
 
         if (isFocusMode) {
@@ -760,7 +850,76 @@ fun HomeScreen(
                 )
             }
         }
+
+        if (weather != null) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.clickable(onClick = onOpenWeatherDetails),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        WeatherIcon(code = weather.weatherCode, modifier = Modifier.size(32.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = stringResource(R.string.weather_temperature, weather.temperatureC.toInt()),
+                            color = Color(0xFFAAAAAA),
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .alpha(if (weatherRefreshing) 0.4f else 1f)
+                            .clickable(enabled = !weatherRefreshing, onClick = onRefreshWeather),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        RefreshIcon(modifier = Modifier.size(18.dp))
+                    }
+                }
+                if (weather.cityName != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = weather.cityName,
+                        color = Color(0xFF777777),
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
     }
+}
+
+@Composable
+fun TodayDateText(modifier: Modifier = Modifier) {
+    var now by remember { mutableStateOf(Calendar.getInstance()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = Calendar.getInstance()
+            kotlinx.coroutines.delay(60_000)
+        }
+    }
+
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val formatted = remember(now.timeInMillis / 60_000, locale) {
+        val formatter = java.text.SimpleDateFormat("EEEE, d MMMM", locale)
+        formatter.format(now.time).replaceFirstChar { it.titlecase(locale) }
+    }
+
+    Text(
+        text = formatted,
+        color = Color(0xFF888888),
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Medium,
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -978,6 +1137,169 @@ fun SettingsIcon(modifier: Modifier = Modifier) {
             radius = innerRadius * 0.55f,
             center = center
         )
+    }
+}
+
+@Composable
+fun RefreshIcon(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+        val radius = size.minDimension / 2.6f
+        val stroke = size.minDimension * 0.14f
+
+        drawArc(
+            color = Color.White,
+            startAngle = -260f,
+            sweepAngle = 260f,
+            useCenter = false,
+            topLeft = androidx.compose.ui.geometry.Offset(center.x - radius, center.y - radius),
+            size = androidx.compose.ui.geometry.Size(radius * 2f, radius * 2f),
+            style = Stroke(width = stroke, cap = StrokeCap.Round)
+        )
+
+        val angle = Math.toRadians(-260.0)
+        val tip = androidx.compose.ui.geometry.Offset(
+            center.x + (radius * cos(angle)).toFloat(),
+            center.y + (radius * sin(angle)).toFloat()
+        )
+        val arrowSize = size.minDimension * 0.22f
+        val path = androidx.compose.ui.graphics.Path().apply {
+            moveTo(tip.x - arrowSize, tip.y - arrowSize * 0.3f)
+            lineTo(tip.x + arrowSize * 0.2f, tip.y)
+            lineTo(tip.x - arrowSize * 0.3f, tip.y + arrowSize)
+            close()
+        }
+        drawPath(path, color = Color.White)
+    }
+}
+
+private enum class WeatherGlyph { CLEAR, PARTLY_CLOUDY, CLOUDY, FOG, RAIN, SNOW, STORM }
+
+private fun weatherGlyphFor(code: Int): WeatherGlyph = when (code) {
+    0 -> WeatherGlyph.CLEAR
+    1, 2 -> WeatherGlyph.PARTLY_CLOUDY
+    3 -> WeatherGlyph.CLOUDY
+    45, 48 -> WeatherGlyph.FOG
+    51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82 -> WeatherGlyph.RAIN
+    71, 73, 75, 77, 85, 86 -> WeatherGlyph.SNOW
+    95, 96, 99 -> WeatherGlyph.STORM
+    else -> WeatherGlyph.CLOUDY
+}
+
+@Composable
+fun WeatherIcon(code: Int, modifier: Modifier = Modifier) {
+    val glyph = weatherGlyphFor(code)
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        fun drawSun(cx: Float, cy: Float, radius: Float) {
+            drawCircle(color = Color.White, radius = radius, center = androidx.compose.ui.geometry.Offset(cx, cy))
+            val rayLength = radius * 0.6f
+            val rayStroke = radius * 0.24f
+            for (i in 0 until 8) {
+                val angle = Math.toRadians((i * 45.0))
+                val startR = radius * 1.25f
+                val endR = startR + rayLength
+                drawLine(
+                    color = Color.White,
+                    start = androidx.compose.ui.geometry.Offset(
+                        cx + (startR * cos(angle)).toFloat(),
+                        cy + (startR * sin(angle)).toFloat()
+                    ),
+                    end = androidx.compose.ui.geometry.Offset(
+                        cx + (endR * cos(angle)).toFloat(),
+                        cy + (endR * sin(angle)).toFloat()
+                    ),
+                    strokeWidth = rayStroke,
+                    cap = StrokeCap.Round
+                )
+            }
+        }
+
+        fun drawCloud(cx: Float, cy: Float, scale: Float) {
+            val r1 = h * 0.16f * scale
+            val r2 = h * 0.13f * scale
+            val r3 = h * 0.11f * scale
+            drawCircle(color = Color.White, radius = r1, center = androidx.compose.ui.geometry.Offset(cx, cy))
+            drawCircle(
+                color = Color.White,
+                radius = r2,
+                center = androidx.compose.ui.geometry.Offset(cx - r1 * 1.1f, cy + r1 * 0.35f)
+            )
+            drawCircle(
+                color = Color.White,
+                radius = r3,
+                center = androidx.compose.ui.geometry.Offset(cx + r1 * 1.1f, cy + r1 * 0.4f)
+            )
+            drawRoundRect(
+                color = Color.White,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - r1 * 1.5f, cy),
+                size = androidx.compose.ui.geometry.Size(r1 * 3f, r1 * 0.9f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(r1 * 0.4f, r1 * 0.4f)
+            )
+        }
+
+        when (glyph) {
+            WeatherGlyph.CLEAR -> drawSun(w / 2f, h / 2f, h * 0.22f)
+            WeatherGlyph.PARTLY_CLOUDY -> {
+                drawSun(w * 0.38f, h * 0.36f, h * 0.16f)
+                drawCloud(w * 0.55f, h * 0.6f, 1f)
+            }
+            WeatherGlyph.CLOUDY, WeatherGlyph.FOG -> {
+                drawCloud(w / 2f, h * 0.5f, 1.15f)
+                if (glyph == WeatherGlyph.FOG) {
+                    val lineY = h * 0.85f
+                    drawLine(
+                        color = Color.White,
+                        start = androidx.compose.ui.geometry.Offset(w * 0.2f, lineY),
+                        end = androidx.compose.ui.geometry.Offset(w * 0.8f, lineY),
+                        strokeWidth = h * 0.05f,
+                        cap = StrokeCap.Round
+                    )
+                }
+            }
+            WeatherGlyph.RAIN -> {
+                drawCloud(w / 2f, h * 0.4f, 1f)
+                val dropStroke = h * 0.06f
+                val dropY = h * 0.72f
+                val dropLen = h * 0.16f
+                for (dx in listOf(-0.16f, 0f, 0.16f)) {
+                    drawLine(
+                        color = Color.White,
+                        start = androidx.compose.ui.geometry.Offset(w * (0.5f + dx), dropY),
+                        end = androidx.compose.ui.geometry.Offset(w * (0.5f + dx) - dropLen * 0.3f, dropY + dropLen),
+                        strokeWidth = dropStroke,
+                        cap = StrokeCap.Round
+                    )
+                }
+            }
+            WeatherGlyph.SNOW -> {
+                drawCloud(w / 2f, h * 0.4f, 1f)
+                val dotRadius = h * 0.035f
+                val dotY = h * 0.78f
+                for (dx in listOf(-0.16f, 0f, 0.16f)) {
+                    drawCircle(
+                        color = Color.White,
+                        radius = dotRadius,
+                        center = androidx.compose.ui.geometry.Offset(w * (0.5f + dx), dotY)
+                    )
+                }
+            }
+            WeatherGlyph.STORM -> {
+                drawCloud(w / 2f, h * 0.38f, 1f)
+                val path = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(w * 0.55f, h * 0.62f)
+                    lineTo(w * 0.42f, h * 0.82f)
+                    lineTo(w * 0.52f, h * 0.82f)
+                    lineTo(w * 0.42f, h * 1.0f)
+                    lineTo(w * 0.62f, h * 0.76f)
+                    lineTo(w * 0.5f, h * 0.76f)
+                    close()
+                }
+                drawPath(path, color = Color.White)
+            }
+        }
     }
 }
 
@@ -2833,6 +3155,177 @@ private fun CarModePickerScreen(
             }
         }
     }
+}
+
+@Composable
+fun WeatherDetailsScreen(
+    details: WeatherDetails?,
+    loading: Boolean,
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .systemBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.back),
+                color = Color.Gray,
+                fontSize = 16.sp,
+                modifier = Modifier.clickable(onClick = onBackClick)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = stringResource(R.string.weather_details_title),
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (details == null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = if (loading) {
+                        stringResource(R.string.weather_details_loading)
+                    } else {
+                        stringResource(R.string.weather_details_unavailable)
+                    },
+                    color = Color.Gray,
+                    fontSize = 16.sp
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                if (details.cityName != null) {
+                    Text(
+                        text = details.cityName,
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    WeatherIcon(code = details.weatherCode, modifier = Modifier.size(56.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = stringResource(R.string.weather_temperature, details.temperatureC.toInt()),
+                        color = Color.White,
+                        fontSize = 44.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.weather_feels_like, details.feelsLikeC.toInt()),
+                    color = Color.Gray,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    WeatherStatTile(
+                        label = stringResource(R.string.weather_humidity),
+                        value = "${details.humidity}%"
+                    )
+                    WeatherStatTile(
+                        label = stringResource(R.string.weather_wind),
+                        value = stringResource(R.string.weather_wind_value, details.windSpeedKmh.toInt())
+                    )
+                    WeatherStatTile(
+                        label = stringResource(R.string.weather_precipitation),
+                        value = stringResource(R.string.weather_precipitation_value, details.precipitationMm)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = stringResource(R.string.weather_forecast_title),
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val todayLabel = stringResource(R.string.weather_today)
+                details.daily.forEachIndexed { index, day ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = weatherDayLabel(day.date, index, todayLabel),
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            modifier = Modifier.width(56.dp)
+                        )
+                        WeatherIcon(code = day.weatherCode, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = stringResource(R.string.weather_precipitation_percent, day.precipitationProbability),
+                            color = Color(0xFF5599FF),
+                            fontSize = 12.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.weather_temp_range,
+                                day.tempMinC.toInt(),
+                                day.tempMaxC.toInt()
+                            ),
+                            color = Color(0xFFAAAAAA),
+                            fontSize = 14.sp
+                        )
+                    }
+                    HorizontalDivider(color = Color(0xFF1E1E1E), thickness = 0.5.dp)
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeatherStatTile(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = value, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(text = label, color = Color.Gray, fontSize = 12.sp)
+    }
+}
+
+private fun weatherDayLabel(dateStr: String, index: Int, todayLabel: String): String {
+    if (index == 0) return todayLabel
+    return runCatching {
+        val parsed = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).parse(dateStr)
+        java.text.SimpleDateFormat("EEE", java.util.Locale.getDefault()).format(parsed!!)
+    }.getOrDefault(dateStr)
 }
 
 @Composable
