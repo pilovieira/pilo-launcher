@@ -109,4 +109,6 @@
     <string name="weather_forecast_title">Hari berikutnya</string>
     <string name="weather_temp_range">%1$d° / %2$d°</string>
     <string name="weather_today">Hari ini</string>
+    <string name="search_widget">Widget Pencarian</string>
+    <string name="search_widget_desc">Ganti bilah pencarian dengan widget Google Penelusuran, sehingga mengetik langsung mencari</string>
 </resources>

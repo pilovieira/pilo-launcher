@@ -109,5 +109,7 @@
     <string name="weather_forecast_title">Próximos dias</string>
     <string name="weather_temp_range">%1$d° / %2$d°</string>
     <string name="weather_today">Hoje</string>
+    <string name="search_widget">Widget de Busca</string>
+    <string name="search_widget_desc">Substitui a barra de busca pelo widget de Busca do Google, para digitar e pesquisar direto</string>
 </resources>
 

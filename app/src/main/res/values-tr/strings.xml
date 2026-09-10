@@ -109,4 +109,6 @@
     <string name="weather_forecast_title">Sonraki günler</string>
     <string name="weather_temp_range">%1$d° / %2$d°</string>
     <string name="weather_today">Bugün</string>
+    <string name="search_widget">Arama Widget\'ı</string>
+    <string name="search_widget_desc">Arama çubuğunu Google Arama widget\'ı ile değiştirir, böylece yazdığınızda doğrudan arama yapılır</string>
 </resources>

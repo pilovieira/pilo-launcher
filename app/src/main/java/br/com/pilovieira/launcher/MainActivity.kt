@@ -110,7 +110,8 @@ enum class Screen {
     HIDDEN_APPS,
     RENAME_APPS,
     CAR_MODE,
-    WEATHER_DETAILS
+    WEATHER_DETAILS,
+    SEARCH_WIDGET_PICKER
 }
 
 class MainActivity : ComponentActivity() {
@@ -128,6 +129,8 @@ class MainActivity : ComponentActivity() {
     private var weatherRefreshing by mutableStateOf(false)
     private var weatherDetails by mutableStateOf<WeatherDetails?>(null)
     private var weatherDetailsLoading by mutableStateOf(false)
+    private var searchWidgetId by mutableStateOf<Int?>(null)
+    private var showSearchWidgetPicker by mutableStateOf(false)
     private var autoCarDevices by mutableStateOf<List<CarModeBluetoothDevice>>(emptyList())
     private val carModeGridSize = CarModeGridSize.TWO_BY_THREE
     private var carModeRows by mutableStateOf<List<CarModeRowConfig>>(emptyList())
@@ -136,9 +139,13 @@ class MainActivity : ComponentActivity() {
     private val appWidgetHost by lazy { AppWidgetHost(this, CAR_MODE_WIDGET_HOST_ID) }
     private var pendingWidgetBind: PendingWidgetBind? = null
 
+    private sealed class WidgetBindTarget {
+        data class CarModeSlot(val rowIndex: Int, val column: Int) : WidgetBindTarget()
+        object SearchBar : WidgetBindTarget()
+    }
+
     private data class PendingWidgetBind(
-        val rowIndex: Int,
-        val column: Int,
+        val target: WidgetBindTarget,
         val appWidgetId: Int,
         val configure: ComponentName?
     )
@@ -266,6 +273,7 @@ class MainActivity : ComponentActivity() {
         if (carModeEnabled) {
             currentScreen = Screen.CAR_MODE
         }
+        searchWidgetId = SearchWidgetPrefs.getWidgetId(this)
 
         weather = WeatherHelper.getCached(this)
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
@@ -338,7 +346,23 @@ class MainActivity : ComponentActivity() {
                         onOpenCarMode = {
                             enableCarMode()
                         },
+                        searchWidgetId = searchWidgetId,
+                        appWidgetHost = appWidgetHost,
+                        appWidgetManager = appWidgetManager,
                         listDensity = listDensity
+                    )
+                }
+                Screen.SEARCH_WIDGET_PICKER -> {
+                    BackHandler {
+                        currentScreen = Screen.SETTINGS
+                    }
+                    CarModeWidgetPickerScreen(
+                        packageFilter = "com.google.android.googlequicksearchbox",
+                        onPick = { provider ->
+                            startSearchWidgetBind(provider)
+                            currentScreen = Screen.SETTINGS
+                        },
+                        onCancel = { currentScreen = Screen.SETTINGS }
                     )
                 }
                 Screen.CAR_MODE -> {
@@ -447,6 +471,14 @@ class MainActivity : ComponentActivity() {
                         hasUsageAccess = hasUsageAccess,
                         onRequestUsageAccess = {
                             UsageStatsHelper.requestUsageAccess(this@MainActivity)
+                        },
+                        searchWidgetEnabled = searchWidgetId != null,
+                        onSearchWidgetChange = { enabled ->
+                            if (enabled) {
+                                currentScreen = Screen.SEARCH_WIDGET_PICKER
+                            } else {
+                                disableSearchWidget()
+                            }
                         },
                         onBackClick = {
                             currentScreen = Screen.LAUNCHER
@@ -604,7 +636,30 @@ class MainActivity : ComponentActivity() {
             appWidgetManager.bindAppWidgetIdIfAllowed(appWidgetId, provider.provider)
         }.getOrDefault(false)
 
-        val pending = PendingWidgetBind(rowIndex, column, appWidgetId, provider.configure)
+        startWidgetBind(WidgetBindTarget.CarModeSlot(rowIndex, column), appWidgetId, allowed, provider)
+    }
+
+    private fun startSearchWidgetBind(provider: AppWidgetProviderInfo) {
+        val appWidgetId = appWidgetHost.allocateAppWidgetId()
+        val allowed = runCatching {
+            appWidgetManager.bindAppWidgetIdIfAllowed(appWidgetId, provider.provider)
+        }.getOrDefault(false)
+        startWidgetBind(WidgetBindTarget.SearchBar, appWidgetId, allowed, provider)
+    }
+
+    private fun disableSearchWidget() {
+        searchWidgetId?.let { id -> runCatching { appWidgetHost.deleteAppWidgetId(id) } }
+        searchWidgetId = null
+        SearchWidgetPrefs.setWidgetId(this, null)
+    }
+
+    private fun startWidgetBind(
+        target: WidgetBindTarget,
+        appWidgetId: Int,
+        allowed: Boolean,
+        provider: AppWidgetProviderInfo
+    ) {
+        val pending = PendingWidgetBind(target, appWidgetId, provider.configure)
         if (allowed) {
             proceedAfterWidgetBindAllowed(pending)
         } else {
@@ -636,12 +691,20 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun finalizeWidgetBind(pending: PendingWidgetBind) {
-        val current = carModeRows.getOrNull(pending.rowIndex) ?: emptyCarModeRow()
-        val newSlots = current.slots.toMutableList()
-        if (pending.column in newSlots.indices) {
-            newSlots[pending.column] = CarModeSlotContent.Widget(pending.appWidgetId)
+        when (val target = pending.target) {
+            is WidgetBindTarget.CarModeSlot -> {
+                val current = carModeRows.getOrNull(target.rowIndex) ?: emptyCarModeRow()
+                val newSlots = current.slots.toMutableList()
+                if (target.column in newSlots.indices) {
+                    newSlots[target.column] = CarModeSlotContent.Widget(pending.appWidgetId)
+                }
+                updateCarModeRow(target.rowIndex, current.copy(slots = newSlots))
+            }
+            WidgetBindTarget.SearchBar -> {
+                searchWidgetId = pending.appWidgetId
+                SearchWidgetPrefs.setWidgetId(this, pending.appWidgetId)
+            }
         }
-        updateCarModeRow(pending.rowIndex, current.copy(slots = newSlots))
     }
 
     private fun enableCarMode() {
@@ -1364,6 +1427,9 @@ fun LauncherScreen(
     onOpenHiddenApps: () -> Unit,
     onOpenRecentApps: () -> Unit,
     onOpenCarMode: () -> Unit,
+    searchWidgetId: Int?,
+    appWidgetHost: AppWidgetHost,
+    appWidgetManager: AppWidgetManager,
     listDensity: ListDensity,
     modifier: Modifier = Modifier
 ) {
@@ -1423,38 +1489,50 @@ fun LauncherScreen(
                     CarIcon(modifier = Modifier.size(18.dp))
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(36.dp)
-                        .border(
-                            width = 1.dp,
-                            color = Color(0xFF333333),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        .padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        if (searchQuery.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.search_apps),
-                                color = Color(0xFF777777),
-                                fontSize = 13.sp
+                if (searchWidgetId != null) {
+                    CarModeWidgetView(
+                        appWidgetId = searchWidgetId,
+                        appWidgetHost = appWidgetHost,
+                        appWidgetManager = appWidgetManager,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                    )
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp)
+                            .border(
+                                width = 1.dp,
+                                color = Color(0xFF333333),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (searchQuery.isEmpty()) {
+                                Text(
+                                    text = stringResource(R.string.search_apps),
+                                    color = Color(0xFF777777),
+                                    fontSize = 13.sp
+                                )
+                            }
+                            BasicTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                textStyle = TextStyle(color = Color.White, fontSize = 13.sp),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                cursorBrush = androidx.compose.ui.graphics.SolidColor(Color.White)
                             )
                         }
-                        BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            textStyle = TextStyle(color = Color.White, fontSize = 13.sp),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            cursorBrush = androidx.compose.ui.graphics.SolidColor(Color.White)
-                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        SearchIcon(modifier = Modifier.size(14.dp))
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    SearchIcon(modifier = Modifier.size(14.dp))
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Box(
@@ -1806,6 +1884,8 @@ fun SettingsScreen(
     onRequestNotificationAccess: () -> Unit,
     hasUsageAccess: Boolean,
     onRequestUsageAccess: () -> Unit,
+    searchWidgetEnabled: Boolean,
+    onSearchWidgetChange: (Boolean) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -2207,6 +2287,49 @@ fun SettingsScreen(
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
+            )
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = Color(0xFF222222)
+        )
+
+        // Search Widget Setting Item
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.search_widget),
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.search_widget_desc),
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Switch(
+                checked = searchWidgetEnabled,
+                onCheckedChange = onSearchWidgetChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.Black,
+                    checkedTrackColor = Color.White,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFF333333),
+                    uncheckedBorderColor = Color.Transparent
+                )
             )
         }
 
@@ -2995,11 +3118,14 @@ private fun WidgetPreviewImage(provider: AppWidgetProviderInfo, modifier: Modifi
 private fun CarModeWidgetPickerScreen(
     onPick: (AppWidgetProviderInfo) -> Unit,
     onCancel: () -> Unit,
+    packageFilter: String? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val providers = remember {
-        runCatching { AppWidgetManager.getInstance(context).installedProviders }.getOrDefault(emptyList())
+    val providers = remember(packageFilter) {
+        runCatching { AppWidgetManager.getInstance(context).installedProviders }
+            .getOrDefault(emptyList())
+            .filter { packageFilter == null || it.provider.packageName == packageFilter }
     }
 
     Column(
