@@ -346,6 +346,9 @@ class MainActivity : ComponentActivity() {
                         onOpenCarMode = {
                             enableCarMode()
                         },
+                        onRenameApp = { app, newLabel ->
+                            viewModel.renameApp(app, newLabel)
+                        },
                         searchWidgetId = searchWidgetId,
                         appWidgetHost = appWidgetHost,
                         appWidgetManager = appWidgetManager,
@@ -1427,6 +1430,7 @@ fun LauncherScreen(
     onOpenHiddenApps: () -> Unit,
     onOpenRecentApps: () -> Unit,
     onOpenCarMode: () -> Unit,
+    onRenameApp: (AppInfo, String) -> Unit,
     searchWidgetId: Int?,
     appWidgetHost: AppWidgetHost,
     appWidgetManager: AppWidgetManager,
@@ -1435,6 +1439,7 @@ fun LauncherScreen(
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var appForContextMenu by remember { mutableStateOf<AppInfo?>(null) }
+    var appBeingRenamed by remember { mutableStateOf<AppInfo?>(null) }
     val filteredApps = remember(apps, searchQuery) {
         if (searchQuery.isBlank()) {
             apps
@@ -1646,7 +1651,23 @@ fun LauncherScreen(
     if (contextApp != null) {
         AppContextMenuDialog(
             app = contextApp,
-            onDismiss = { appForContextMenu = null }
+            onDismiss = { appForContextMenu = null },
+            onRenameClick = {
+                appBeingRenamed = contextApp
+                appForContextMenu = null
+            }
+        )
+    }
+
+    val renameApp = appBeingRenamed
+    if (renameApp != null) {
+        RenameAppDialog(
+            app = renameApp,
+            onConfirm = { newLabel ->
+                onRenameApp(renameApp, newLabel)
+                appBeingRenamed = null
+            },
+            onDismiss = { appBeingRenamed = null }
         )
     }
 }
@@ -1654,7 +1675,8 @@ fun LauncherScreen(
 @Composable
 fun AppContextMenuDialog(
     app: AppInfo,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onRenameClick: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -1685,6 +1707,16 @@ fun AppContextMenuDialog(
                                 ).show()
                             }
                             onDismiss()
+                        }
+                        .padding(vertical = 12.dp)
+                )
+                Text(
+                    text = stringResource(R.string.rename),
+                    fontSize = 16.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onRenameClick()
                         }
                         .padding(vertical = 12.dp)
                 )
