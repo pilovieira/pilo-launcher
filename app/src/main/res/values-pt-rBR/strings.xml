@@ -57,6 +57,7 @@
     <string name="sort_by_usage">Ordenar por uso</string>
     <string name="sort_by_usage_desc">Os apps mais usados sobem para o topo da lista</string>
     <string name="clear_usage_stats">Limpar contador de uso</string>
+    <string name="usage_stats_cleared">Contador de uso limpo ✓</string>
     <string name="snake_game">Snake</string>
     <string name="snake_score">Pontos: %1$d</string>
     <string name="snake_high_score">Recorde: %1$d</string>

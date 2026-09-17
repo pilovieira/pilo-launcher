@@ -24,6 +24,7 @@ import androidx.activity.viewModels
 import android.graphics.Bitmap
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -2555,26 +2556,43 @@ fun SettingsScreen(
             )
         }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClearUsageStats)
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = stringResource(R.string.clear_usage_stats),
-                color = Color(0xFFAAAAAA),
-                fontSize = 13.sp,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                text = stringResource(R.string.edit_arrow),
-                color = Color.White,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
-            )
+        var usageStatsCleared by remember { mutableStateOf(false) }
+        LaunchedEffect(usageStatsCleared) {
+            if (usageStatsCleared) {
+                kotlinx.coroutines.delay(2000)
+                usageStatsCleared = false
+            }
+        }
+
+        Column(modifier = Modifier.padding(bottom = 4.dp)) {
+            Button(
+                onClick = {
+                    onClearUsageStats()
+                    usageStatsCleared = true
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color(0xFFFF6B6B)
+                ),
+                border = BorderStroke(1.dp, Color(0xFFFF6B6B)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.clear_usage_stats),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            if (usageStatsCleared) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.usage_stats_cleared),
+                    color = Color(0xFF4CAF50),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
 
         HorizontalDivider(
