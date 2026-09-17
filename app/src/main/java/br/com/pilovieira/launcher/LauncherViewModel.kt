@@ -37,6 +37,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val keyClockStyle = "key_clock_style"
     private val keyLockScreenEnabled = "key_lock_screen_enabled"
     private val keyListDensity = "key_list_density"
+    private val keySortByUsage = "key_sort_by_usage"
     private val customLabelPrefix = "label_"
     private val openCountPrefix = "open_count_"
     private val recentTimePrefix = "recent_time_"
@@ -66,6 +67,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _listDensity = MutableStateFlow(loadListDensity())
     val listDensity: StateFlow<ListDensity> = _listDensity.asStateFlow()
 
+    private val _sortByUsageEnabled = MutableStateFlow(prefs.getBoolean(keySortByUsage, false))
+    val sortByUsageEnabled: StateFlow<Boolean> = _sortByUsageEnabled.asStateFlow()
+
     // All installed apps, with any custom labels applied and re-sorted.
     val allApps: StateFlow<List<AppInfo>> = combine(_rawApps, _customLabels) { raw, labels ->
         raw.map { app ->
@@ -74,9 +78,22 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    // Apps displayed on the launcher screen (only non-hidden apps)
-    val apps: StateFlow<List<AppInfo>> = combine(allApps, _hiddenAppKeys) { all, hidden ->
-        all.filter { app -> !hidden.contains(app.key) }
+    // Apps displayed on the launcher screen (only non-hidden apps), optionally sorted by usage.
+    val apps: StateFlow<List<AppInfo>> = combine(
+        allApps,
+        _hiddenAppKeys,
+        _openCounts,
+        _sortByUsageEnabled
+    ) { all, hidden, counts, sortByUsage ->
+        val visible = all.filter { app -> !hidden.contains(app.key) }
+        if (sortByUsage) {
+            visible.sortedWith(
+                compareByDescending<AppInfo> { counts[it.key] ?: 0 }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.label }
+            )
+        } else {
+            visible
+        }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     // Apps opened in the last 24 hours, most recent first.
@@ -162,6 +179,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun setListDensity(density: ListDensity) {
         _listDensity.value = density
         prefs.edit().putString(keyListDensity, density.name).apply()
+    }
+
+    fun setSortByUsageEnabled(enabled: Boolean) {
+        _sortByUsageEnabled.value = enabled
+        prefs.edit().putBoolean(keySortByUsage, enabled).apply()
     }
 
     fun setLockScreenEnabled(enabled: Boolean) {

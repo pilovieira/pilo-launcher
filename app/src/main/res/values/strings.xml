@@ -55,6 +55,8 @@
     <string name="list_density">App list size</string>
     <string name="list_density_compact">Compact</string>
     <string name="list_density_normal">Normal</string>
+    <string name="sort_by_usage">Sort by usage</string>
+    <string name="sort_by_usage_desc">Most-used apps move to the top of the list</string>
     <string name="snake_game">Snake</string>
     <string name="snake_score">Score: %1$d</string>
     <string name="snake_high_score">High score: %1$d</string>

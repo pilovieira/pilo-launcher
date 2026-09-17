@@ -292,6 +292,8 @@ class MainActivity : ComponentActivity() {
             val clockStyle by viewModel.clockStyle.collectAsState()
             val lockScreenEnabled by viewModel.lockScreenEnabled.collectAsState()
             val listDensity by viewModel.listDensity.collectAsState()
+            val sortByUsageEnabled by viewModel.sortByUsageEnabled.collectAsState()
+            val openCounts by viewModel.openCounts.collectAsState()
 
             MaterialTheme(colorScheme = darkColorScheme()) {
             when (currentScreen) {
@@ -349,6 +351,8 @@ class MainActivity : ComponentActivity() {
                         onRenameApp = { app, newLabel ->
                             viewModel.renameApp(app, newLabel)
                         },
+                        sortByUsageEnabled = sortByUsageEnabled,
+                        openCounts = openCounts,
                         searchWidgetId = searchWidgetId,
                         appWidgetHost = appWidgetHost,
                         appWidgetManager = appWidgetManager,
@@ -482,6 +486,10 @@ class MainActivity : ComponentActivity() {
                             } else {
                                 disableSearchWidget()
                             }
+                        },
+                        sortByUsageEnabled = sortByUsageEnabled,
+                        onSortByUsageChange = { enabled ->
+                            viewModel.setSortByUsageEnabled(enabled)
                         },
                         onBackClick = {
                             currentScreen = Screen.LAUNCHER
@@ -1431,6 +1439,8 @@ fun LauncherScreen(
     onOpenRecentApps: () -> Unit,
     onOpenCarMode: () -> Unit,
     onRenameApp: (AppInfo, String) -> Unit,
+    sortByUsageEnabled: Boolean,
+    openCounts: Map<String, Int>,
     searchWidgetId: Int?,
     appWidgetHost: AppWidgetHost,
     appWidgetManager: AppWidgetManager,
@@ -1577,16 +1587,54 @@ fun LauncherScreen(
                         bottom = if (!isDefaultLauncher) 80.dp else 16.dp
                     )
                 ) {
-                    items(
-                        items = filteredApps,
-                        key = { it.key }
-                    ) { app ->
-                        AppListItem(
-                            app = app,
-                            onClick = { onAppClick(app) },
-                            onLongClick = { appForContextMenu = app },
-                            listDensity = listDensity
-                        )
+                    if (sortByUsageEnabled) {
+                        val usedApps = filteredApps.filter { (openCounts[it.key] ?: 0) > 0 }
+                        val unusedApps = filteredApps.filter { (openCounts[it.key] ?: 0) == 0 }
+
+                        items(
+                            items = usedApps,
+                            key = { it.key }
+                        ) { app ->
+                            AppListItem(
+                                app = app,
+                                onClick = { onAppClick(app) },
+                                onLongClick = { appForContextMenu = app },
+                                listDensity = listDensity
+                            )
+                        }
+
+                        if (usedApps.isNotEmpty() && unusedApps.isNotEmpty()) {
+                            item(key = "launcher_usage_sort_separator") {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 10.dp),
+                                    color = Color(0xFF222222)
+                                )
+                            }
+                        }
+
+                        items(
+                            items = unusedApps,
+                            key = { it.key }
+                        ) { app ->
+                            AppListItem(
+                                app = app,
+                                onClick = { onAppClick(app) },
+                                onLongClick = { appForContextMenu = app },
+                                listDensity = listDensity
+                            )
+                        }
+                    } else {
+                        items(
+                            items = filteredApps,
+                            key = { it.key }
+                        ) { app ->
+                            AppListItem(
+                                app = app,
+                                onClick = { onAppClick(app) },
+                                onLongClick = { appForContextMenu = app },
+                                listDensity = listDensity
+                            )
+                        }
                     }
 
                     // Hidden Apps button (only shown when there are hidden apps)
@@ -1918,6 +1966,8 @@ fun SettingsScreen(
     onRequestUsageAccess: () -> Unit,
     searchWidgetEnabled: Boolean,
     onSearchWidgetChange: (Boolean) -> Unit,
+    sortByUsageEnabled: Boolean,
+    onSortByUsageChange: (Boolean) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -2456,6 +2506,49 @@ fun SettingsScreen(
                     onClick = { onListDensityChange(ListDensity.NORMAL) }
                 )
             }
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = Color(0xFF222222)
+        )
+
+        // Sort by Usage Setting Item
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.sort_by_usage),
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.sort_by_usage_desc),
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Switch(
+                checked = sortByUsageEnabled,
+                onCheckedChange = onSortByUsageChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.Black,
+                    checkedTrackColor = Color.White,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFF333333),
+                    uncheckedBorderColor = Color.Transparent
+                )
+            )
         }
 
         HorizontalDivider(
