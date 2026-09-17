@@ -41,8 +41,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val customLabelPrefix = "label_"
     private val openCountPrefix = "open_count_"
     private val recentTimePrefix = "recent_time_"
+    private val usageScorePrefix = "usage_score_"
     private val maxRecentApps = 15
     private val recentAppsWindowMs = 24L * 60 * 60 * 1000
+
+    // Usage weight halves every 7 days since an app's last open, so recent habits
+    // outweigh old ones instead of a lifetime open count dominating forever.
+    private val usageHalfLifeDays = 7.0
 
     private val _rawApps = MutableStateFlow<List<AppInfo>>(emptyList())
 
@@ -57,6 +62,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private val _openCounts = MutableStateFlow<Map<String, Int>>(loadOpenCounts())
     val openCounts: StateFlow<Map<String, Int>> = _openCounts.asStateFlow()
+
+    private val _usageScores = MutableStateFlow<Map<String, Double>>(loadUsageScores())
 
     private val _clockStyle = MutableStateFlow(loadClockStyle())
     val clockStyle: StateFlow<ClockStyle> = _clockStyle.asStateFlow()
@@ -78,18 +85,37 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    // Apps displayed on the launcher screen (only non-hidden apps), optionally sorted by usage.
+    private data class UsageData(
+        val counts: Map<String, Int>,
+        val scores: Map<String, Double>,
+        val lastOpenTimestamps: Map<String, Long>
+    )
+
+    private val usageData: StateFlow<UsageData> = combine(
+        _openCounts,
+        _usageScores,
+        _recentAppTimestamps
+    ) { counts, scores, timestamps ->
+        UsageData(counts, scores, timestamps)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, UsageData(emptyMap(), emptyMap(), emptyMap()))
+
+    // Apps displayed on the launcher screen (only non-hidden apps), optionally sorted by
+    // a usage weight that decays over time so recently-used apps outrank stale ones.
     val apps: StateFlow<List<AppInfo>> = combine(
         allApps,
         _hiddenAppKeys,
-        _openCounts,
+        usageData,
         _sortByUsageEnabled
-    ) { all, hidden, counts, sortByUsage ->
+    ) { all, hidden, usage, sortByUsage ->
         val visible = all.filter { app -> !hidden.contains(app.key) }
         if (sortByUsage) {
+            val now = System.currentTimeMillis()
             visible.sortedWith(
-                compareByDescending<AppInfo> { counts[it.key] ?: 0 }
-                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.label }
+                compareByDescending<AppInfo> { app ->
+                    val lastOpen = usage.lastOpenTimestamps[app.key]
+                    val score = usage.scores[app.key]
+                    if (lastOpen == null || score == null) 0.0 else decayedScore(score, lastOpen, now)
+                }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.label }
             )
         } else {
             visible
@@ -143,6 +169,21 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             .mapKeys { it.key.removePrefix(recentTimePrefix) }
             .mapNotNull { (key, value) -> (value as? Long)?.let { key to it } }
             .toMap()
+    }
+
+    private fun loadUsageScores(): Map<String, Double> {
+        return prefs.all
+            .filterKeys { it.startsWith(usageScorePrefix) }
+            .mapKeys { it.key.removePrefix(usageScorePrefix) }
+            .mapNotNull { (key, value) -> (value as? Float)?.let { key to it.toDouble() } }
+            .toMap()
+    }
+
+    // Exponentially decays a usage score from the time it was recorded up to `nowMs`,
+    // halving every `usageHalfLifeDays` days so older activity fades but never vanishes.
+    private fun decayedScore(score: Double, lastEventMs: Long, nowMs: Long): Double {
+        val elapsedDays = (nowMs - lastEventMs).coerceAtLeast(0) / (24.0 * 60 * 60 * 1000)
+        return score * Math.pow(0.5, elapsedDays / usageHalfLifeDays)
     }
 
     private fun loadOpenCounts(): Map<String, Int> {
@@ -229,6 +270,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.edit().putString(keyRecentApps, trimmed.joinToString("|")).apply()
 
         val now = System.currentTimeMillis()
+        val previousOpen = _recentAppTimestamps.value[app.key]
         val updatedTimestamps = _recentAppTimestamps.value.toMutableMap()
         updatedTimestamps[app.key] = now
         _recentAppTimestamps.value = updatedTimestamps
@@ -239,6 +281,18 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         updatedCounts[app.key] = newCount
         _openCounts.value = updatedCounts
         prefs.edit().putInt(openCountPrefix + app.key, newCount).apply()
+
+        val previousScore = _usageScores.value[app.key] ?: 0.0
+        val decayedPrevious = if (previousOpen != null) {
+            decayedScore(previousScore, previousOpen, now)
+        } else {
+            previousScore
+        }
+        val newScore = decayedPrevious + 1.0
+        val updatedScores = _usageScores.value.toMutableMap()
+        updatedScores[app.key] = newScore
+        _usageScores.value = updatedScores
+        prefs.edit().putFloat(usageScorePrefix + app.key, newScore.toFloat()).apply()
     }
 
     fun clearRecentApps() {
