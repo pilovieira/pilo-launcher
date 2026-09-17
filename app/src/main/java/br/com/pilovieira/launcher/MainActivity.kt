@@ -491,6 +491,9 @@ class MainActivity : ComponentActivity() {
                         onSortByUsageChange = { enabled ->
                             viewModel.setSortByUsageEnabled(enabled)
                         },
+                        onClearUsageStats = {
+                            viewModel.clearUsageStats()
+                        },
                         onBackClick = {
                             currentScreen = Screen.LAUNCHER
                         }
@@ -1968,6 +1971,7 @@ fun SettingsScreen(
     onSearchWidgetChange: (Boolean) -> Unit,
     sortByUsageEnabled: Boolean,
     onSortByUsageChange: (Boolean) -> Unit,
+    onClearUsageStats: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -2548,6 +2552,28 @@ fun SettingsScreen(
                     uncheckedTrackColor = Color(0xFF333333),
                     uncheckedBorderColor = Color.Transparent
                 )
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClearUsageStats)
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = stringResource(R.string.clear_usage_stats),
+                color = Color(0xFFAAAAAA),
+                fontSize = 13.sp,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = stringResource(R.string.edit_arrow),
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium
             )
         }
 

@@ -227,6 +227,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.edit().putBoolean(keySortByUsage, enabled).apply()
     }
 
+    fun clearUsageStats() {
+        val editor = prefs.edit()
+        _openCounts.value.keys.forEach { key -> editor.remove(openCountPrefix + key) }
+        _usageScores.value.keys.forEach { key -> editor.remove(usageScorePrefix + key) }
+        editor.apply()
+        _openCounts.value = emptyMap()
+        _usageScores.value = emptyMap()
+    }
+
     fun setLockScreenEnabled(enabled: Boolean) {
         _lockScreenEnabled.value = enabled
         prefs.edit().putBoolean(keyLockScreenEnabled, enabled).apply()
