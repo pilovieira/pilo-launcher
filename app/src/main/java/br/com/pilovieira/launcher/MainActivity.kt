@@ -525,6 +525,9 @@ class MainActivity : ComponentActivity() {
                         onAppClick = { app ->
                             launchApp(app)
                         },
+                        onRenameApp = { app, newLabel ->
+                            viewModel.renameApp(app, newLabel)
+                        },
                         onBackClick = {
                             currentScreen = Screen.LAUNCHER
                         },
@@ -3629,11 +3632,14 @@ fun HiddenAppsScreen(
     allApps: List<AppInfo>,
     hiddenAppKeys: Set<String>,
     onAppClick: (AppInfo) -> Unit,
+    onRenameApp: (AppInfo, String) -> Unit,
     onBackClick: () -> Unit,
     listDensity: ListDensity,
     modifier: Modifier = Modifier
 ) {
     val hiddenApps = allApps.filter { app -> hiddenAppKeys.contains(app.key) }
+    var appForContextMenu by remember { mutableStateOf<AppInfo?>(null) }
+    var appBeingRenamed by remember { mutableStateOf<AppInfo?>(null) }
 
     Column(
         modifier = modifier
@@ -3708,11 +3714,36 @@ fun HiddenAppsScreen(
                     AppListItem(
                         app = app,
                         onClick = { onAppClick(app) },
+                        onLongClick = { appForContextMenu = app },
                         listDensity = listDensity
                     )
                 }
             }
         }
+    }
+
+    val contextApp = appForContextMenu
+    if (contextApp != null) {
+        AppContextMenuDialog(
+            app = contextApp,
+            onDismiss = { appForContextMenu = null },
+            onRenameClick = {
+                appBeingRenamed = contextApp
+                appForContextMenu = null
+            }
+        )
+    }
+
+    val renameApp = appBeingRenamed
+    if (renameApp != null) {
+        RenameAppDialog(
+            app = renameApp,
+            onConfirm = { newLabel ->
+                onRenameApp(renameApp, newLabel)
+                appBeingRenamed = null
+            },
+            onDismiss = { appBeingRenamed = null }
+        )
     }
 }
 
