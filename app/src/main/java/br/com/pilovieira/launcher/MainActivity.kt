@@ -568,6 +568,7 @@ class MainActivity : ComponentActivity() {
             FocusModeHelper.applyRingerMode(this)
         }
         viewModel.loadApps()
+        viewModel.purgeStaleUsageStats()
         refreshWeather()
 
         // Pick up Car Mode changes made outside this activity (e.g. the Bluetooth receiver).

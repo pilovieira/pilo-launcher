@@ -49,6 +49,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // outweigh old ones instead of a lifetime open count dominating forever.
     private val usageHalfLifeDays = 7.0
 
+    // If an app goes 3 days without being opened, its usage counter is wiped outright,
+    // so it drops back into the "never used" group at the bottom of the app list.
+    private val usageResetAfterMs = 3L * 24 * 60 * 60 * 1000
+
     private val _rawApps = MutableStateFlow<List<AppInfo>>(emptyList())
 
     private val _hiddenAppKeys = MutableStateFlow<Set<String>>(loadHiddenAppKeys())
@@ -143,6 +147,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     init {
         loadApps()
+        purgeStaleUsageStats()
         registerPackageReceiver()
     }
 
@@ -180,10 +185,31 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     // Exponentially decays a usage score from the time it was recorded up to `nowMs`,
-    // halving every `usageHalfLifeDays` days so older activity fades but never vanishes.
+    // halving every `usageHalfLifeDays` days so recent opens outweigh older ones.
     private fun decayedScore(score: Double, lastEventMs: Long, nowMs: Long): Double {
         val elapsedDays = (nowMs - lastEventMs).coerceAtLeast(0) / (24.0 * 60 * 60 * 1000)
         return score * Math.pow(0.5, elapsedDays / usageHalfLifeDays)
+    }
+
+    // Wipes the usage counter/score of any app that hasn't been opened in `usageResetAfterMs`,
+    // so it falls back into the "never used" group instead of lingering at the top forever.
+    fun purgeStaleUsageStats() {
+        val now = System.currentTimeMillis()
+        val staleKeys = _openCounts.value.keys.filter { key ->
+            val lastOpen = _recentAppTimestamps.value[key]
+            lastOpen == null || (now - lastOpen) > usageResetAfterMs
+        }
+        if (staleKeys.isEmpty()) return
+
+        val editor = prefs.edit()
+        staleKeys.forEach { key ->
+            editor.remove(openCountPrefix + key)
+            editor.remove(usageScorePrefix + key)
+        }
+        editor.apply()
+
+        _openCounts.value = _openCounts.value - staleKeys.toSet()
+        _usageScores.value = _usageScores.value - staleKeys.toSet()
     }
 
     private fun loadOpenCounts(): Map<String, Int> {
