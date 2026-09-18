@@ -45,9 +45,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val maxRecentApps = 15
     private val recentAppsWindowMs = 24L * 60 * 60 * 1000
 
-    // Usage weight halves every 7 days since an app's last open, so recent habits
+    // Usage weight halves every 2 days since an app's last open, so recent habits
     // outweigh old ones instead of a lifetime open count dominating forever.
-    private val usageHalfLifeDays = 7.0
+    private val usageHalfLifeDays = 2.0
 
     // If an app goes 3 days without being opened, its usage counter is wiped outright,
     // so it drops back into the "never used" group at the bottom of the app list.
