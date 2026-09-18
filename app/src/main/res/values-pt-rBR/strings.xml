@@ -56,6 +56,8 @@
     <string name="list_density_normal">Normal</string>
     <string name="sort_by_usage">Ordenar por uso</string>
     <string name="sort_by_usage_desc">Os apps mais usados sobem para o topo da lista</string>
+    <string name="sorted_list_density">Tamanho da lista (apps usados)</string>
+    <string name="unsorted_list_density">Tamanho da lista (apps não usados)</string>
     <string name="clear_usage_stats">Limpar contador de uso</string>
     <string name="usage_stats_cleared">Contador de uso limpo ✓</string>
     <string name="snake_game">Snake</string>

@@ -37,6 +37,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val keyClockStyle = "key_clock_style"
     private val keyLockScreenEnabled = "key_lock_screen_enabled"
     private val keyListDensity = "key_list_density"
+    private val keySortedListDensity = "key_sorted_list_density"
+    private val keyUnsortedListDensity = "key_unsorted_list_density"
     private val keySortByUsage = "key_sort_by_usage"
     private val customLabelPrefix = "label_"
     private val openCountPrefix = "open_count_"
@@ -77,6 +79,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private val _listDensity = MutableStateFlow(loadListDensity())
     val listDensity: StateFlow<ListDensity> = _listDensity.asStateFlow()
+
+    // Separate list sizes for the usage-sorted app list: one for the "used" apps above
+    // the separator, another for the never-used apps below it.
+    private val _sortedListDensity = MutableStateFlow(loadListDensity(keySortedListDensity))
+    val sortedListDensity: StateFlow<ListDensity> = _sortedListDensity.asStateFlow()
+
+    private val _unsortedListDensity = MutableStateFlow(loadListDensity(keyUnsortedListDensity))
+    val unsortedListDensity: StateFlow<ListDensity> = _unsortedListDensity.asStateFlow()
 
     private val _sortByUsageEnabled = MutableStateFlow(prefs.getBoolean(keySortByUsage, false))
     val sortByUsageEnabled: StateFlow<Boolean> = _sortByUsageEnabled.asStateFlow()
@@ -234,8 +244,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.edit().putString(keyClockStyle, style.name).apply()
     }
 
-    private fun loadListDensity(): ListDensity {
-        val stored = prefs.getString(keyListDensity, null) ?: return ListDensity.NORMAL
+    private fun loadListDensity(key: String = keyListDensity): ListDensity {
+        val stored = prefs.getString(key, null) ?: return ListDensity.NORMAL
         return try {
             ListDensity.valueOf(stored)
         } catch (_: IllegalArgumentException) {
@@ -246,6 +256,16 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun setListDensity(density: ListDensity) {
         _listDensity.value = density
         prefs.edit().putString(keyListDensity, density.name).apply()
+    }
+
+    fun setSortedListDensity(density: ListDensity) {
+        _sortedListDensity.value = density
+        prefs.edit().putString(keySortedListDensity, density.name).apply()
+    }
+
+    fun setUnsortedListDensity(density: ListDensity) {
+        _unsortedListDensity.value = density
+        prefs.edit().putString(keyUnsortedListDensity, density.name).apply()
     }
 
     fun setSortByUsageEnabled(enabled: Boolean) {

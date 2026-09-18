@@ -293,6 +293,8 @@ class MainActivity : ComponentActivity() {
             val clockStyle by viewModel.clockStyle.collectAsState()
             val lockScreenEnabled by viewModel.lockScreenEnabled.collectAsState()
             val listDensity by viewModel.listDensity.collectAsState()
+            val sortedListDensity by viewModel.sortedListDensity.collectAsState()
+            val unsortedListDensity by viewModel.unsortedListDensity.collectAsState()
             val sortByUsageEnabled by viewModel.sortByUsageEnabled.collectAsState()
             val openCounts by viewModel.openCounts.collectAsState()
 
@@ -353,6 +355,8 @@ class MainActivity : ComponentActivity() {
                             viewModel.renameApp(app, newLabel)
                         },
                         sortByUsageEnabled = sortByUsageEnabled,
+                        sortedListDensity = sortedListDensity,
+                        unsortedListDensity = unsortedListDensity,
                         openCounts = openCounts,
                         searchWidgetId = searchWidgetId,
                         appWidgetHost = appWidgetHost,
@@ -494,6 +498,14 @@ class MainActivity : ComponentActivity() {
                         sortByUsageEnabled = sortByUsageEnabled,
                         onSortByUsageChange = { enabled ->
                             viewModel.setSortByUsageEnabled(enabled)
+                        },
+                        sortedListDensity = sortedListDensity,
+                        onSortedListDensityChange = { density ->
+                            viewModel.setSortedListDensity(density)
+                        },
+                        unsortedListDensity = unsortedListDensity,
+                        onUnsortedListDensityChange = { density ->
+                            viewModel.setUnsortedListDensity(density)
                         },
                         onClearUsageStats = {
                             viewModel.clearUsageStats()
@@ -1451,6 +1463,8 @@ fun LauncherScreen(
     onOpenCarMode: () -> Unit,
     onRenameApp: (AppInfo, String) -> Unit,
     sortByUsageEnabled: Boolean,
+    sortedListDensity: ListDensity,
+    unsortedListDensity: ListDensity,
     openCounts: Map<String, Int>,
     searchWidgetId: Int?,
     appWidgetHost: AppWidgetHost,
@@ -1610,7 +1624,7 @@ fun LauncherScreen(
                                 app = app,
                                 onClick = { onAppClick(app) },
                                 onLongClick = { appForContextMenu = app },
-                                listDensity = listDensity
+                                listDensity = sortedListDensity
                             )
                         }
 
@@ -1631,7 +1645,7 @@ fun LauncherScreen(
                                 app = app,
                                 onClick = { onAppClick(app) },
                                 onLongClick = { appForContextMenu = app },
-                                listDensity = listDensity
+                                listDensity = unsortedListDensity
                             )
                         }
                     } else {
@@ -2009,6 +2023,10 @@ fun SettingsScreen(
     onSearchWidgetChange: (Boolean) -> Unit,
     sortByUsageEnabled: Boolean,
     onSortByUsageChange: (Boolean) -> Unit,
+    sortedListDensity: ListDensity,
+    onSortedListDensityChange: (ListDensity) -> Unit,
+    unsortedListDensity: ListDensity,
+    onUnsortedListDensityChange: (ListDensity) -> Unit,
     onClearUsageStats: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -2591,6 +2609,50 @@ fun SettingsScreen(
                     uncheckedBorderColor = Color.Transparent
                 )
             )
+        }
+
+        Column(modifier = Modifier.padding(bottom = 12.dp)) {
+            Text(
+                text = stringResource(R.string.sorted_list_density),
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ClockStyleOption(
+                    label = stringResource(R.string.list_density_compact),
+                    selected = sortedListDensity == ListDensity.COMPACT,
+                    onClick = { onSortedListDensityChange(ListDensity.COMPACT) }
+                )
+                ClockStyleOption(
+                    label = stringResource(R.string.list_density_normal),
+                    selected = sortedListDensity == ListDensity.NORMAL,
+                    onClick = { onSortedListDensityChange(ListDensity.NORMAL) }
+                )
+            }
+        }
+
+        Column(modifier = Modifier.padding(bottom = 12.dp)) {
+            Text(
+                text = stringResource(R.string.unsorted_list_density),
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ClockStyleOption(
+                    label = stringResource(R.string.list_density_compact),
+                    selected = unsortedListDensity == ListDensity.COMPACT,
+                    onClick = { onUnsortedListDensityChange(ListDensity.COMPACT) }
+                )
+                ClockStyleOption(
+                    label = stringResource(R.string.list_density_normal),
+                    selected = unsortedListDensity == ListDensity.NORMAL,
+                    onClick = { onUnsortedListDensityChange(ListDensity.NORMAL) }
+                )
+            }
         }
 
         var usageStatsCleared by remember { mutableStateOf(false) }
