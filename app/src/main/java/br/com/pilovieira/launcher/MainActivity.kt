@@ -415,6 +415,9 @@ class MainActivity : ComponentActivity() {
                         onClearClick = {
                             viewModel.clearRecentApps()
                         },
+                        onRenameApp = { app, newLabel ->
+                            viewModel.renameApp(app, newLabel)
+                        },
                         onBackClick = {
                             currentScreen = Screen.LAUNCHER
                         },
@@ -1814,6 +1817,7 @@ fun RecentAppsScreen(
     recentApps: List<AppInfo>,
     onAppClick: (AppInfo) -> Unit,
     onClearClick: () -> Unit,
+    onRenameApp: (AppInfo, String) -> Unit,
     onBackClick: () -> Unit,
     listDensity: ListDensity,
     modifier: Modifier = Modifier
@@ -1823,6 +1827,8 @@ fun RecentAppsScreen(
         val oneDayMs = 24L * 60 * 60 * 1000
         UsageStatsHelper.getUsageTimeByPackage(context, System.currentTimeMillis() - oneDayMs)
     }
+    var appForContextMenu by remember { mutableStateOf<AppInfo?>(null) }
+    var appBeingRenamed by remember { mutableStateOf<AppInfo?>(null) }
 
     Column(
         modifier = modifier
@@ -1907,19 +1913,46 @@ fun RecentAppsScreen(
                         app = app,
                         usageTimeMillis = usageTimes[app.packageName] ?: 0L,
                         onClick = { onAppClick(app) },
+                        onLongClick = { appForContextMenu = app },
                         listDensity = listDensity
                     )
                 }
             }
         }
     }
+
+    val contextApp = appForContextMenu
+    if (contextApp != null) {
+        AppContextMenuDialog(
+            app = contextApp,
+            onDismiss = { appForContextMenu = null },
+            onRenameClick = {
+                appBeingRenamed = contextApp
+                appForContextMenu = null
+            }
+        )
+    }
+
+    val renameApp = appBeingRenamed
+    if (renameApp != null) {
+        RenameAppDialog(
+            app = renameApp,
+            onConfirm = { newLabel ->
+                onRenameApp(renameApp, newLabel)
+                appBeingRenamed = null
+            },
+            onDismiss = { appBeingRenamed = null }
+        )
+    }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RecentAppListItem(
     app: AppInfo,
     usageTimeMillis: Long,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     listDensity: ListDensity = ListDensity.NORMAL,
     modifier: Modifier = Modifier
 ) {
@@ -1929,7 +1962,7 @@ fun RecentAppListItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
