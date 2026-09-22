@@ -57,6 +57,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.database)
     implementation(libs.play.services.auth)
     implementation(libs.kotlinx.coroutines.play.services)
 }

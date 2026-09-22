@@ -40,16 +40,20 @@ object ClipboardHistoryStore {
         val current = getAll(context)
         if (current.firstOrNull()?.text == trimmed) return
 
-        val updated = listOf(ClipboardEntry(id = System.currentTimeMillis(), text = trimmed)) + current
+        val newEntry = ClipboardEntry(id = System.currentTimeMillis(), text = trimmed)
+        val updated = listOf(newEntry) + current
         save(context, updated.take(maxItems))
+        ClipboardSync.push(newEntry)
     }
 
     fun remove(context: Context, id: Long) {
         save(context, getAll(context).filterNot { it.id == id })
+        ClipboardSync.remove(id)
     }
 
     fun clear(context: Context) {
         prefs(context).edit().remove(keyItems).apply()
+        ClipboardSync.clear()
     }
 
     private fun save(context: Context, items: List<ClipboardEntry>) {
