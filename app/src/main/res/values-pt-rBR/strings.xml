@@ -39,6 +39,11 @@
     <string name="clipboard">Área de transferência</string>
     <string name="clipboard_empty">Nada copiado ainda</string>
     <string name="copied_to_clipboard">Copiado para a área de transferência</string>
+    <string name="clipboard_background_capture">Captura em segundo plano</string>
+    <string name="clipboard_background_capture_enabled">Ativado</string>
+    <string name="clipboard_background_capture_disabled">Captura apenas cópias feitas com o launcher aberto. Ative para capturar de qualquer app.</string>
+    <string name="clipboard_accessibility_service_label">Histórico do Clipboard</string>
+    <string name="clipboard_accessibility_service_description">Permite que o launcher registre no histórico do Clipboard os textos copiados em outros apps. Não lê o conteúdo da tela.</string>
     <string name="app_usage_stats">Aberto %1$d vezes · %2$d min no total</string>
     <string name="app_usage_stats_no_time">Aberto %1$d vezes</string>
     <string name="app_info">Informações do app</string>

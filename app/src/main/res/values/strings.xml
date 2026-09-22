@@ -40,6 +40,11 @@
     <string name="clipboard">Clipboard</string>
     <string name="clipboard_empty">Nothing copied yet</string>
     <string name="copied_to_clipboard">Copied to clipboard</string>
+    <string name="clipboard_background_capture">Background clipboard capture</string>
+    <string name="clipboard_background_capture_enabled">Enabled</string>
+    <string name="clipboard_background_capture_disabled">Only captures copies made while the launcher is open. Enable to capture from any app.</string>
+    <string name="clipboard_accessibility_service_label">Clipboard History</string>
+    <string name="clipboard_accessibility_service_description">Lets the launcher record text you copy in other apps into its Clipboard history. It does not read screen content.</string>
     <string name="app_usage_stats">Opened %1$d times · %2$d min total</string>
     <string name="app_usage_stats_no_time">Opened %1$d times</string>
     <string name="app_info">App info</string>

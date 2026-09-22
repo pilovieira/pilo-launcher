@@ -125,6 +125,7 @@ class MainActivity : ComponentActivity() {
     private var isFocusMode by mutableStateOf(false)
     private var hasNotificationAccess by mutableStateOf(false)
     private var hasUsageAccess by mutableStateOf(false)
+    private var hasClipboardAccessibility by mutableStateOf(false)
     private var carModeEnabled by mutableStateOf(false)
     private var autoCarModeEnabled by mutableStateOf(false)
     private var weather by mutableStateOf<WeatherData?>(null)
@@ -268,6 +269,7 @@ class MainActivity : ComponentActivity() {
         isFocusMode = FocusModeHelper.isFocusModeEnabled(this)
         hasNotificationAccess = NotificationAccessHelper.isNotificationListenerEnabled(this)
         hasUsageAccess = UsageStatsHelper.hasUsageAccess(this)
+        hasClipboardAccessibility = br.com.pilovieira.launcher.clipboard.ClipboardAccessibilityHelper.isServiceEnabled(this)
         carModeEnabled = CarModePrefs.isEnabled(this)
         autoCarModeEnabled = CarModePrefs.isAutoEnabled(this)
         autoCarDevices = CarModePrefs.getAutoDevices(this)
@@ -492,6 +494,10 @@ class MainActivity : ComponentActivity() {
                         onRequestUsageAccess = {
                             UsageStatsHelper.requestUsageAccess(this@MainActivity)
                         },
+                        hasClipboardAccessibility = hasClipboardAccessibility,
+                        onRequestClipboardAccessibility = {
+                            br.com.pilovieira.launcher.clipboard.ClipboardAccessibilityHelper.requestEnableService(this@MainActivity)
+                        },
                         searchWidgetEnabled = searchWidgetId != null,
                         onSearchWidgetChange = { enabled ->
                             if (enabled) {
@@ -596,6 +602,7 @@ class MainActivity : ComponentActivity() {
         isFocusMode = FocusModeHelper.isFocusModeEnabled(this)
         hasNotificationAccess = NotificationAccessHelper.isNotificationListenerEnabled(this)
         hasUsageAccess = UsageStatsHelper.hasUsageAccess(this)
+        hasClipboardAccessibility = br.com.pilovieira.launcher.clipboard.ClipboardAccessibilityHelper.isServiceEnabled(this)
         if (isFocusMode) {
             FocusModeHelper.applyRingerMode(this)
         }
@@ -2085,6 +2092,8 @@ fun SettingsScreen(
     onRequestNotificationAccess: () -> Unit,
     hasUsageAccess: Boolean,
     onRequestUsageAccess: () -> Unit,
+    hasClipboardAccessibility: Boolean,
+    onRequestClipboardAccessibility: () -> Unit,
     searchWidgetEnabled: Boolean,
     onSearchWidgetChange: (Boolean) -> Unit,
     sortByUsageEnabled: Boolean,
@@ -2488,6 +2497,47 @@ fun SettingsScreen(
                         stringResource(R.string.usage_access_granted)
                     } else {
                         stringResource(R.string.usage_access_desc)
+                    },
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+            }
+
+            Text(
+                text = stringResource(R.string.edit_arrow),
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = Color(0xFF222222)
+        )
+
+        // Clipboard Background Capture Setting Item
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onRequestClipboardAccessibility)
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.clipboard_background_capture),
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = if (hasClipboardAccessibility) {
+                        stringResource(R.string.clipboard_background_capture_enabled)
+                    } else {
+                        stringResource(R.string.clipboard_background_capture_disabled)
                     },
                     color = Color.Gray,
                     fontSize = 13.sp

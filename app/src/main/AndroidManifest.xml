@@ -109,6 +109,22 @@
             </intent-filter>
         </service>
 
+        <!-- Enables the launcher to read the clipboard while another app is in the
+             foreground; Android only allows that for the foreground app or an app
+             with an enabled AccessibilityService. -->
+        <service
+            android:name=".clipboard.ClipboardAccessibilityService"
+            android:exported="true"
+            android:label="@string/clipboard_accessibility_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/clipboard_accessibility_service_config" />
+        </service>
+
         <receiver
             android:name=".BootReceiver"
             android:exported="false">
