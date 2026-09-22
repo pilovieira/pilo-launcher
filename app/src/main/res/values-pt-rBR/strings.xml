@@ -44,6 +44,11 @@
     <string name="clipboard_background_capture_disabled">Captura apenas cópias feitas com o launcher aberto. Ative para capturar de qualquer app.</string>
     <string name="clipboard_accessibility_service_label">Histórico do Clipboard</string>
     <string name="clipboard_accessibility_service_description">Permite que o launcher registre no histórico do Clipboard os textos copiados em outros apps. Não lê o conteúdo da tela.</string>
+    <string name="google_account">Conta Google</string>
+    <string name="sign_in_with_google">Entrar com o Google</string>
+    <string name="signing_in">Entrando…</string>
+    <string name="sign_in_failed">Falha ao entrar</string>
+    <string name="sign_out">Sair</string>
     <string name="app_usage_stats">Aberto %1$d vezes · %2$d min no total</string>
     <string name="app_usage_stats_no_time">Aberto %1$d vezes</string>
     <string name="app_info">Informações do app</string>

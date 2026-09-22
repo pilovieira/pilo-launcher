@@ -126,6 +126,8 @@ class MainActivity : ComponentActivity() {
     private var hasNotificationAccess by mutableStateOf(false)
     private var hasUsageAccess by mutableStateOf(false)
     private var hasClipboardAccessibility by mutableStateOf(false)
+    private var signedInUser by mutableStateOf<com.google.firebase.auth.FirebaseUser?>(null)
+    private var signInInProgress by mutableStateOf(false)
     private var carModeEnabled by mutableStateOf(false)
     private var autoCarModeEnabled by mutableStateOf(false)
     private var weather by mutableStateOf<WeatherData?>(null)
@@ -222,6 +224,31 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val googleSignInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        signInInProgress = true
+        lifecycleScope.launch {
+            val outcome = br.com.pilovieira.launcher.auth.AuthManager.handleSignInResult(this@MainActivity, result.data)
+            signInInProgress = false
+            outcome.onSuccess { user ->
+                signedInUser = user
+            }.onFailure {
+                Toast.makeText(this@MainActivity, getString(R.string.sign_in_failed), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun requestGoogleSignIn() {
+        signInInProgress = true
+        googleSignInLauncher.launch(br.com.pilovieira.launcher.auth.AuthManager.signInIntent(this))
+    }
+
+    private fun signOutGoogle() {
+        br.com.pilovieira.launcher.auth.AuthManager.signOut(this)
+        signedInUser = null
+    }
+
     private fun refreshWeather(force: Boolean = false) {
         val cached = WeatherHelper.getCached(this)
         if (cached != null) weather = cached
@@ -270,6 +297,7 @@ class MainActivity : ComponentActivity() {
         hasNotificationAccess = NotificationAccessHelper.isNotificationListenerEnabled(this)
         hasUsageAccess = UsageStatsHelper.hasUsageAccess(this)
         hasClipboardAccessibility = br.com.pilovieira.launcher.clipboard.ClipboardAccessibilityHelper.isServiceEnabled(this)
+        signedInUser = br.com.pilovieira.launcher.auth.AuthManager.currentUser
         carModeEnabled = CarModePrefs.isEnabled(this)
         autoCarModeEnabled = CarModePrefs.isAutoEnabled(this)
         autoCarDevices = CarModePrefs.getAutoDevices(this)
@@ -440,6 +468,11 @@ class MainActivity : ComponentActivity() {
                         currentScreen = Screen.LAUNCHER
                     }
                     SettingsScreen(
+                        signedInUserName = signedInUser?.displayName,
+                        signedInUserEmail = signedInUser?.email,
+                        signInInProgress = signInInProgress,
+                        onSignInClick = { requestGoogleSignIn() },
+                        onSignOutClick = { signOutGoogle() },
                         isFocusMode = isFocusMode,
                         onFocusModeChange = { enabled ->
                             handleFocusModeToggle(enabled)
@@ -2069,6 +2102,11 @@ fun RecentAppListItem(
 
 @Composable
 fun SettingsScreen(
+    signedInUserName: String?,
+    signedInUserEmail: String?,
+    signInInProgress: Boolean,
+    onSignInClick: () -> Unit,
+    onSignOutClick: () -> Unit,
     isFocusMode: Boolean,
     onFocusModeChange: (Boolean) -> Unit,
     autoCarModeEnabled: Boolean,
@@ -2141,6 +2179,50 @@ fun SettingsScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Google Sign-In Setting Item
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(
+                    enabled = !signInInProgress,
+                    onClick = { if (signedInUserEmail != null) onSignOutClick() else onSignInClick() }
+                )
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.google_account),
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = when {
+                        signInInProgress -> stringResource(R.string.signing_in)
+                        signedInUserEmail != null -> signedInUserName?.takeIf { it.isNotBlank() } ?: signedInUserEmail
+                        else -> stringResource(R.string.sign_in_with_google)
+                    },
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+            }
+
+            Text(
+                text = if (signedInUserEmail != null) stringResource(R.string.sign_out) else stringResource(R.string.edit_arrow),
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = Color(0xFF222222)
+        )
 
         // Focus Mode Setting Item
         Row(
