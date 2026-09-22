@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetHostView
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
+import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -275,6 +276,7 @@ class MainActivity : ComponentActivity() {
             currentScreen = Screen.CAR_MODE
         }
         searchWidgetId = SearchWidgetPrefs.getWidgetId(this)
+        registerClipboardListener()
 
         weather = WeatherHelper.getCached(this)
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
@@ -296,6 +298,8 @@ class MainActivity : ComponentActivity() {
             val sortedListDensity by viewModel.sortedListDensity.collectAsState()
             val unsortedListDensity by viewModel.unsortedListDensity.collectAsState()
             val sortByUsageEnabled by viewModel.sortByUsageEnabled.collectAsState()
+            val featuredSortAlphabetical by viewModel.featuredSortAlphabetical.collectAsState()
+            val autoHideUnusedEnabled by viewModel.autoHideUnusedEnabled.collectAsState()
             val openCounts by viewModel.openCounts.collectAsState()
 
             MaterialTheme(colorScheme = darkColorScheme()) {
@@ -413,6 +417,7 @@ class MainActivity : ComponentActivity() {
                     }
                     RecentAppsScreen(
                         recentApps = recentApps,
+                        openCounts = openCounts,
                         onAppClick = { app ->
                             launchApp(app)
                         },
@@ -499,6 +504,14 @@ class MainActivity : ComponentActivity() {
                         onSortByUsageChange = { enabled ->
                             viewModel.setSortByUsageEnabled(enabled)
                         },
+                        featuredSortAlphabetical = featuredSortAlphabetical,
+                        onFeaturedSortAlphabeticalChange = { enabled ->
+                            viewModel.setFeaturedSortAlphabetical(enabled)
+                        },
+                        autoHideUnusedEnabled = autoHideUnusedEnabled,
+                        onAutoHideUnusedChange = { enabled ->
+                            viewModel.setAutoHideUnusedEnabled(enabled)
+                        },
                         sortedListDensity = sortedListDensity,
                         onSortedListDensityChange = { density ->
                             viewModel.setSortedListDensity(density)
@@ -537,6 +550,7 @@ class MainActivity : ComponentActivity() {
                     HiddenAppsScreen(
                         allApps = allApps,
                         hiddenAppKeys = hiddenAppKeys,
+                        openCounts = openCounts,
                         onAppClick = { app ->
                             launchApp(app)
                         },
@@ -853,6 +867,36 @@ class MainActivity : ComponentActivity() {
                 startActivity(intent)
             }
         }
+    }
+
+    private var clipboardListener: ClipboardManager.OnPrimaryClipChangedListener? = null
+
+    // Records every text copied anywhere on the device into the in-app clipboard history,
+    // best-effort: Android only delivers primary-clip reads to the foreground app, so this
+    // only reliably captures copies made while the launcher itself is on screen.
+    private fun registerClipboardListener() {
+        val clipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        val listener = ClipboardManager.OnPrimaryClipChangedListener {
+            runCatching {
+                val text = clipboardManager.primaryClip
+                    ?.takeIf { it.itemCount > 0 }
+                    ?.getItemAt(0)
+                    ?.coerceToText(this)
+                    ?.toString()
+                if (!text.isNullOrBlank()) {
+                    br.com.pilovieira.launcher.clipboard.ClipboardHistoryStore.add(this, text)
+                }
+            }
+        }
+        clipboardManager.addPrimaryClipChangedListener(listener)
+        clipboardListener = listener
+    }
+
+    override fun onDestroy() {
+        clipboardListener?.let {
+            (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).removePrimaryClipChangedListener(it)
+        }
+        super.onDestroy()
     }
 
     private fun launchApp(app: AppInfo) {
@@ -1724,6 +1768,7 @@ fun LauncherScreen(
     if (contextApp != null) {
         AppContextMenuDialog(
             app = contextApp,
+            openCount = openCounts[contextApp.key] ?: 0,
             onDismiss = { appForContextMenu = null },
             onRenameClick = {
                 appBeingRenamed = contextApp
@@ -1748,10 +1793,19 @@ fun LauncherScreen(
 @Composable
 fun AppContextMenuDialog(
     app: AppInfo,
+    openCount: Int,
     onDismiss: () -> Unit,
     onRenameClick: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val usageMinutes = remember(app.packageName) {
+        if (UsageStatsHelper.hasUsageAccess(context)) {
+            val usageTimes = UsageStatsHelper.getUsageTimeByPackage(context, 0L)
+            (usageTimes[app.packageName] ?: 0L) / (60L * 1000)
+        } else {
+            null
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1760,6 +1814,16 @@ fun AppContextMenuDialog(
         },
         text = {
             Column {
+                Text(
+                    text = if (usageMinutes != null) {
+                        stringResource(R.string.app_usage_stats, openCount, usageMinutes)
+                    } else {
+                        stringResource(R.string.app_usage_stats_no_time, openCount)
+                    },
+                    color = Color.Gray,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
                 Text(
                     text = stringResource(R.string.app_info),
                     fontSize = 16.sp,
@@ -1829,6 +1893,7 @@ fun AppContextMenuDialog(
 @Composable
 fun RecentAppsScreen(
     recentApps: List<AppInfo>,
+    openCounts: Map<String, Int>,
     onAppClick: (AppInfo) -> Unit,
     onClearClick: () -> Unit,
     onRenameApp: (AppInfo, String) -> Unit,
@@ -1939,6 +2004,7 @@ fun RecentAppsScreen(
     if (contextApp != null) {
         AppContextMenuDialog(
             app = contextApp,
+            openCount = openCounts[contextApp.key] ?: 0,
             onDismiss = { appForContextMenu = null },
             onRenameClick = {
                 appBeingRenamed = contextApp
@@ -2023,6 +2089,10 @@ fun SettingsScreen(
     onSearchWidgetChange: (Boolean) -> Unit,
     sortByUsageEnabled: Boolean,
     onSortByUsageChange: (Boolean) -> Unit,
+    featuredSortAlphabetical: Boolean,
+    onFeaturedSortAlphabeticalChange: (Boolean) -> Unit,
+    autoHideUnusedEnabled: Boolean,
+    onAutoHideUnusedChange: (Boolean) -> Unit,
     sortedListDensity: ListDensity,
     onSortedListDensityChange: (ListDensity) -> Unit,
     unsortedListDensity: ListDensity,
@@ -2601,6 +2671,80 @@ fun SettingsScreen(
             Switch(
                 checked = sortByUsageEnabled,
                 onCheckedChange = onSortByUsageChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.Black,
+                    checkedTrackColor = Color.White,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFF333333),
+                    uncheckedBorderColor = Color.Transparent
+                )
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.featured_sort_alphabetical),
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.featured_sort_alphabetical_desc),
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Switch(
+                checked = featuredSortAlphabetical,
+                onCheckedChange = onFeaturedSortAlphabeticalChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.Black,
+                    checkedTrackColor = Color.White,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFF333333),
+                    uncheckedBorderColor = Color.Transparent
+                )
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.auto_hide_unused_apps),
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.auto_hide_unused_apps_desc),
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Switch(
+                checked = autoHideUnusedEnabled,
+                onCheckedChange = onAutoHideUnusedChange,
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = Color.Black,
                     checkedTrackColor = Color.White,
@@ -3726,6 +3870,7 @@ private fun weatherDayLabel(dateStr: String, index: Int, todayLabel: String): St
 fun HiddenAppsScreen(
     allApps: List<AppInfo>,
     hiddenAppKeys: Set<String>,
+    openCounts: Map<String, Int>,
     onAppClick: (AppInfo) -> Unit,
     onRenameApp: (AppInfo, String) -> Unit,
     onBackClick: () -> Unit,
@@ -3821,6 +3966,7 @@ fun HiddenAppsScreen(
     if (contextApp != null) {
         AppContextMenuDialog(
             app = contextApp,
+            openCount = openCounts[contextApp.key] ?: 0,
             onDismiss = { appForContextMenu = null },
             onRenameClick = {
                 appBeingRenamed = contextApp

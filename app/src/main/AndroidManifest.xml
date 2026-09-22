@@ -78,6 +78,12 @@
             android:theme="@style/Theme.Launcher" />
 
         <activity
+            android:name=".clipboard.ClipboardActivity"
+            android:exported="false"
+            android:taskAffinity=".clipboard"
+            android:theme="@style/Theme.Launcher" />
+
+        <activity
             android:name=".LockScreenActivity"
             android:exported="false"
             android:launchMode="singleInstance"

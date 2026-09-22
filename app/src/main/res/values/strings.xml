@@ -36,6 +36,12 @@
     <string name="cancel">Cancel</string>
     <string name="focus_mode_on">Focus Mode on</string>
     <string name="more_apps">More apps</string>
+    <string name="clear">Clear</string>
+    <string name="clipboard">Clipboard</string>
+    <string name="clipboard_empty">Nothing copied yet</string>
+    <string name="copied_to_clipboard">Copied to clipboard</string>
+    <string name="app_usage_stats">Opened %1$d times · %2$d min total</string>
+    <string name="app_usage_stats_no_time">Opened %1$d times</string>
     <string name="app_info">App info</string>
     <string name="uninstall">Uninstall</string>
     <string name="could_not_open_app_info">Could not open app info</string>
@@ -55,8 +61,12 @@
     <string name="list_density">App list size</string>
     <string name="list_density_compact">Compact</string>
     <string name="list_density_normal">Normal</string>
-    <string name="sort_by_usage">Sort by usage</string>
+    <string name="sort_by_usage">Highlight most-used apps</string>
     <string name="sort_by_usage_desc">Most-used apps move to the top of the list</string>
+    <string name="featured_sort_alphabetical">Sort featured apps alphabetically</string>
+    <string name="featured_sort_alphabetical_desc">Order the featured apps by name instead of by most-accessed</string>
+    <string name="auto_hide_unused_apps">Auto-hide unused apps</string>
+    <string name="auto_hide_unused_apps_desc">Automatically hides apps not used for more than 7 days</string>
     <string name="sorted_list_density">List size (used apps)</string>
     <string name="unsorted_list_density">List size (unused apps)</string>
     <string name="clear_usage_stats">Clear usage counter</string>
