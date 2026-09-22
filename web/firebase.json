@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "pilo-clipboard",
+    "site": "copycopy",
     "public": "dist",
     "ignore": [
       "firebase.json",
