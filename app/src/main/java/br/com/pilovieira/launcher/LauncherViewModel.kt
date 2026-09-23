@@ -36,6 +36,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val keyRecentApps = "key_recent_apps"
     private val keyClockStyle = "key_clock_style"
     private val keyLockScreenEnabled = "key_lock_screen_enabled"
+    private val keyClipboardAlertEnabled = "key_clipboard_alert_enabled"
     private val keyListDensity = "key_list_density"
     private val keySortedListDensity = "key_sorted_list_density"
     private val keyUnsortedListDensity = "key_unsorted_list_density"
@@ -87,6 +88,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private val _lockScreenEnabled = MutableStateFlow(prefs.getBoolean(keyLockScreenEnabled, false))
     val lockScreenEnabled: StateFlow<Boolean> = _lockScreenEnabled.asStateFlow()
+
+    // Whether pasting text on the Pilfy web app should pop an on-device modal here.
+    private val _clipboardAlertEnabled = MutableStateFlow(prefs.getBoolean(keyClipboardAlertEnabled, false))
+    val clipboardAlertEnabled: StateFlow<Boolean> = _clipboardAlertEnabled.asStateFlow()
 
     private val _listDensity = MutableStateFlow(loadListDensity())
     val listDensity: StateFlow<ListDensity> = _listDensity.asStateFlow()
@@ -355,6 +360,16 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             LockScreenService.start(getApplication())
         } else {
             LockScreenService.stop(getApplication())
+        }
+    }
+
+    fun setClipboardAlertEnabled(enabled: Boolean) {
+        _clipboardAlertEnabled.value = enabled
+        prefs.edit().putBoolean(keyClipboardAlertEnabled, enabled).apply()
+        if (enabled) {
+            br.com.pilovieira.launcher.clipboard.ClipboardAlertService.start(getApplication())
+        } else {
+            br.com.pilovieira.launcher.clipboard.ClipboardAlertService.stop(getApplication())
         }
     }
 

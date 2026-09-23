@@ -46,6 +46,21 @@ object ClipboardHistoryStore {
         ClipboardSync.push(newEntry)
     }
 
+    // Inserts an entry that was captured elsewhere (the Pilfy web app) and already has an
+    // id/timestamp assigned. Local-only: does not push back to Firebase, and is a no-op if
+    // an entry with this id is already present, so it's safe to call more than once for the
+    // same remote entry (e.g. if the alert service restarts).
+    fun addRemote(context: Context, id: Long, text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return
+
+        val current = getAll(context)
+        if (current.any { it.id == id }) return
+
+        val updated = listOf(ClipboardEntry(id = id, text = trimmed)) + current
+        save(context, updated.take(maxItems))
+    }
+
     fun remove(context: Context, id: Long) {
         save(context, getAll(context).filterNot { it.id == id })
         ClipboardSync.remove(id)

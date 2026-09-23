@@ -63,6 +63,12 @@
     <string name="notification_count_plural">%1$d notificações</string>
     <string name="lock_screen_service_channel">Tela de bloqueio</string>
     <string name="lock_screen_service_notification">Tela de bloqueio personalizada ativa</string>
+    <string name="clipboard_alert_setting">Aviso de clipboard remoto</string>
+    <string name="clipboard_alert_setting_desc">Mostra um aviso no aparelho quando um texto for colado no site do Pilfy</string>
+    <string name="clipboard_alert_service_channel">Aviso de clipboard</string>
+    <string name="clipboard_alert_service_notification">Ouvindo textos colados no Pilfy</string>
+    <string name="clipboard_alert_title">Colado no Pilfy</string>
+    <string name="clipboard_alert_copy">Copiar</string>
     <string name="list_density">Tamanho da lista de apps</string>
     <string name="list_density_compact">Compacta</string>
     <string name="list_density_normal">Normal</string>

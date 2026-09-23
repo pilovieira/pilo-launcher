@@ -47,10 +47,11 @@ class FirebaseApi {
     )
   }
 
-  // Same shape the Android app writes: <uid>/clipboard-launcher/<timestamp> = { text, timestamp }.
+  // Same shape the Android app writes, tagged with source "web" so the Android app can
+  // tell these apart from its own entries and pop its clipboard-alert modal for them.
   static addEntry(uid, text) {
     const timestamp = Date.now()
-    return set(ref(db, `${clipboardPath(uid)}/${timestamp}`), { text, timestamp })
+    return set(ref(db, `${clipboardPath(uid)}/${timestamp}`), { text, timestamp, source: 'web' })
   }
 
   static deleteEntry(uid, entryId) {

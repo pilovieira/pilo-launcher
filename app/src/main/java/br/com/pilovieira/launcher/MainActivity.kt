@@ -322,6 +322,7 @@ class MainActivity : ComponentActivity() {
             val recentApps by viewModel.recentApps.collectAsState()
             val clockStyle by viewModel.clockStyle.collectAsState()
             val lockScreenEnabled by viewModel.lockScreenEnabled.collectAsState()
+            val clipboardAlertEnabled by viewModel.clipboardAlertEnabled.collectAsState()
             val listDensity by viewModel.listDensity.collectAsState()
             val sortedListDensity by viewModel.sortedListDensity.collectAsState()
             val unsortedListDensity by viewModel.unsortedListDensity.collectAsState()
@@ -519,6 +520,10 @@ class MainActivity : ComponentActivity() {
                         lockScreenEnabled = lockScreenEnabled,
                         onLockScreenEnabledChange = { enabled ->
                             handleLockScreenToggle(enabled)
+                        },
+                        clipboardAlertEnabled = clipboardAlertEnabled,
+                        onClipboardAlertEnabledChange = { enabled ->
+                            viewModel.setClipboardAlertEnabled(enabled)
                         },
                         hasNotificationAccess = hasNotificationAccess,
                         onRequestNotificationAccess = {
@@ -2181,6 +2186,8 @@ fun SettingsScreen(
     onListDensityChange: (ListDensity) -> Unit,
     lockScreenEnabled: Boolean,
     onLockScreenEnabledChange: (Boolean) -> Unit,
+    clipboardAlertEnabled: Boolean,
+    onClipboardAlertEnabledChange: (Boolean) -> Unit,
     hasNotificationAccess: Boolean,
     onRequestNotificationAccess: () -> Unit,
     hasUsageAccess: Boolean,
@@ -3047,6 +3054,49 @@ fun SettingsScreen(
                     fontWeight = FontWeight.Medium
                 )
             }
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = Color(0xFF222222)
+        )
+
+        // Clipboard Remote Alert Setting Item
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.clipboard_alert_setting),
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.clipboard_alert_setting_desc),
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Switch(
+                checked = clipboardAlertEnabled,
+                onCheckedChange = onClipboardAlertEnabledChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.Black,
+                    checkedTrackColor = Color.White,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFF333333),
+                    uncheckedBorderColor = Color.Transparent
+                )
+            )
         }
 
         HorizontalDivider(

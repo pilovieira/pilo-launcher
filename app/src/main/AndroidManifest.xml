@@ -109,6 +109,24 @@
             </intent-filter>
         </service>
 
+        <activity
+            android:name=".clipboard.ClipboardAlertActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.Launcher" />
+
+        <!-- Listens for clipboard entries pasted on the Pilfy web app and pops the modal
+             above; only runs while the "Remote clipboard alert" setting is enabled. -->
+        <service
+            android:name=".clipboard.ClipboardAlertService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Shows an alert when text is pasted on the Pilfy web app" />
+        </service>
+
         <!-- Adds a "Pilfy" entry to the text-selection floating toolbar (the
              Copy / Select All / Paste menu) in any app, via the Process Text API.
              No special permission needed. -->

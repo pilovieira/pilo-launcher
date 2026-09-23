@@ -11,14 +11,19 @@ object ClipboardSync {
 
     private const val childKey = "clipboard-launcher"
 
-    private fun clipboardRef() =
+    // Tags every entry this device writes so ClipboardAlertService can tell apart entries
+    // that originated here (which shouldn't trigger the on-device alert modal) from ones
+    // pasted on the Pilfy web app (which should).
+    const val sourceAndroid = "android"
+
+    fun clipboardRef() =
         AuthManager.currentUser?.uid?.let { uid ->
             FirebaseDatabase.getInstance().getReference(uid).child(childKey)
         }
 
     fun push(entry: ClipboardEntry) {
         clipboardRef()?.child(entry.id.toString())
-            ?.setValue(mapOf("text" to entry.text, "timestamp" to entry.id))
+            ?.setValue(mapOf("text" to entry.text, "timestamp" to entry.id, "source" to sourceAndroid))
     }
 
     fun remove(id: Long) {
