@@ -6,7 +6,7 @@ import android.os.Bundle
 import android.widget.Toast
 import br.com.pilovieira.launcher.R
 
-// Handles the "CopyCopy" entry Android adds to the text-selection floating toolbar
+// Handles the "Pilfy" entry Android adds to the text-selection floating toolbar
 // (next to Copy / Select All / Paste) in any app, via the standard Process Text API.
 // Saves the selected text straight into the clipboard history and closes without UI.
 class ProcessTextActivity : Activity() {

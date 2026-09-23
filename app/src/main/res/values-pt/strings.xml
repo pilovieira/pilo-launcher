@@ -39,7 +39,7 @@
     <string name="clipboard">Área de transferência</string>
     <string name="clipboard_empty">Nada copiado ainda</string>
     <string name="copied_to_clipboard">Copiado para a área de transferência</string>
-    <string name="copycopy_action_label">CopyCopy</string>
+    <string name="pilfy_action_label">Pilfy</string>
     <string name="google_account">Conta Google</string>
     <string name="sign_in_with_google">Entrar com o Google</string>
     <string name="signing_in">Entrando…</string>

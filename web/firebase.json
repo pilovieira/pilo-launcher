@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "copycopy",
+    "site": "pilfy",
     "public": "dist",
     "ignore": [
       "firebase.json",

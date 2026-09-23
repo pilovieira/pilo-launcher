@@ -41,8 +41,8 @@ function App() {
   if (user === null) {
     return (
       <div className="screen center">
-        <h1>Clipboard</h1>
-        <p className="subtitle">Sincronizado com o Pilo Launcher</p>
+        <h1>Pilfy</h1>
+        <p className="subtitle">Clipboard sincronizado com o Pilo Launcher</p>
         <button className="google-btn" onClick={() => FirebaseApi.loginWithGoogle()}>
           Entrar com o Google
         </button>
@@ -54,7 +54,7 @@ function App() {
     <div className="screen">
       <header className="header">
         <div>
-          <h1>Clipboard</h1>
+          <h1>Pilfy</h1>
           <span className="user-email">{user.email}</span>
         </div>
         <div className="header-actions">
