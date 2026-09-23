@@ -124,6 +124,23 @@
             </intent-filter>
         </activity>
 
+        <!-- Adds "Pilfy" as a destination in the system Share sheet, for text that
+             doesn't offer the selection-menu action above (e.g. web page content in a
+             browser, or a whole page/article shared via "Share"). -->
+        <activity
+            android:name=".clipboard.ShareReceiveActivity"
+            android:exported="true"
+            android:label="@string/pilfy_action_label"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
         <receiver
             android:name=".BootReceiver"
             android:exported="false">
