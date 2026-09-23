@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth'
-import { getDatabase, onValue, ref, remove } from 'firebase/database'
+import { getDatabase, onValue, ref, remove, set } from 'firebase/database'
 
 const firebaseConfig = {
   projectId: 'pilovieira-sandbox',
@@ -45,6 +45,12 @@ class FirebaseApi {
         listener(null)
       }
     )
+  }
+
+  // Same shape the Android app writes: <uid>/clipboard-launcher/<timestamp> = { text, timestamp }.
+  static addEntry(uid, text) {
+    const timestamp = Date.now()
+    return set(ref(db, `${clipboardPath(uid)}/${timestamp}`), { text, timestamp })
   }
 
   static deleteEntry(uid, entryId) {

@@ -13,6 +13,7 @@ function App() {
   const [user, setUser] = useState(undefined)
   const [entries, setEntries] = useState([])
   const [copiedId, setCopiedId] = useState(null)
+  const [justSaved, setJustSaved] = useState(false)
 
   useEffect(() => FirebaseApi.registerAuthListener(setUser), [])
 
@@ -31,6 +32,19 @@ function App() {
       setTimeout(() => setCopiedId((current) => (current === entry.id ? null : current)), 1500)
     } catch (error) {
       console.error('Failed to copy to clipboard:', error)
+    }
+  }
+
+  const handlePaste = async (event) => {
+    const text = event.clipboardData.getData('text')
+    event.preventDefault()
+    if (!text.trim()) return
+    try {
+      await FirebaseApi.addEntry(user.uid, text)
+      setJustSaved(true)
+      setTimeout(() => setJustSaved(false), 1500)
+    } catch (error) {
+      console.error('Failed to save pasted text:', error)
     }
   }
 
@@ -68,6 +82,17 @@ function App() {
           </button>
         </div>
       </header>
+
+      <div className="paste-box-wrapper">
+        <textarea
+          className="paste-box"
+          placeholder="Cole aqui (Ctrl+V) para enviar para o Android"
+          value=""
+          onChange={() => {}}
+          onPaste={handlePaste}
+        />
+        {justSaved && <span className="saved-label">Salvo ✓</span>}
+      </div>
 
       {entries.length === 0 ? (
         <p className="empty">Nada copiado ainda</p>

@@ -369,6 +369,9 @@ class MainActivity : ComponentActivity() {
                         onOpenSettings = {
                             currentScreen = Screen.SETTINGS
                         },
+                        onOpenClipboard = {
+                            startActivity(Intent(this@MainActivity, br.com.pilovieira.launcher.clipboard.ClipboardActivity::class.java))
+                        },
                         isDefaultLauncher = isDefault,
                         onSetDefaultClick = {
                             requestSetDefaultLauncher()
@@ -1272,6 +1275,49 @@ fun ClearIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun PilfyIcon(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val strokeWidth = size.minDimension * 0.1f
+        val bodyTop = size.height * 0.12f
+        val bodyRect = androidx.compose.ui.geometry.Rect(
+            left = size.width * 0.12f,
+            top = bodyTop,
+            right = size.width * 0.88f,
+            bottom = size.height * 0.95f
+        )
+        drawRoundRect(
+            color = Color.White,
+            topLeft = bodyRect.topLeft,
+            size = bodyRect.size,
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.minDimension * 0.14f),
+            style = Stroke(width = strokeWidth)
+        )
+
+        val clipWidth = size.width * 0.34f
+        drawRoundRect(
+            color = Color.White,
+            topLeft = androidx.compose.ui.geometry.Offset(size.width / 2f - clipWidth / 2f, 0f),
+            size = androidx.compose.ui.geometry.Size(clipWidth, bodyTop * 1.3f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.minDimension * 0.08f)
+        )
+
+        val lineStartX = bodyRect.left + bodyRect.width * 0.2f
+        val lineEndXFull = bodyRect.right - bodyRect.width * 0.2f
+        val lineEndXShort = bodyRect.right - bodyRect.width * 0.35f
+        listOf(0.45f, 0.62f, 0.79f).forEachIndexed { index, fraction ->
+            val y = bodyRect.top + bodyRect.height * fraction
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(lineStartX, y),
+                end = androidx.compose.ui.geometry.Offset(if (index == 2) lineEndXShort else lineEndXFull, y),
+                strokeWidth = strokeWidth * 0.7f,
+                cap = StrokeCap.Round
+            )
+        }
+    }
+}
+
+@Composable
 fun SettingsIcon(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
@@ -1532,6 +1578,7 @@ fun LauncherScreen(
     apps: List<AppInfo>,
     onAppClick: (AppInfo) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenClipboard: () -> Unit,
     isDefaultLauncher: Boolean,
     onSetDefaultClick: () -> Unit,
     hiddenAppsCount: Int,
@@ -1652,6 +1699,21 @@ fun LauncherScreen(
                     }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFF333333),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .clickable(onClick = onOpenClipboard),
+                    contentAlignment = Alignment.Center
+                ) {
+                    PilfyIcon(modifier = Modifier.size(16.dp))
+                }
+                Spacer(modifier = Modifier.width(8.dp))
                 Box(
                     modifier = Modifier
                         .size(36.dp)
