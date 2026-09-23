@@ -109,21 +109,20 @@
             </intent-filter>
         </service>
 
-        <!-- Enables the launcher to read the clipboard while another app is in the
-             foreground; Android only allows that for the foreground app or an app
-             with an enabled AccessibilityService. -->
-        <service
-            android:name=".clipboard.ClipboardAccessibilityService"
+        <!-- Adds a "CopyCopy" entry to the text-selection floating toolbar (the
+             Copy / Select All / Paste menu) in any app, via the Process Text API.
+             No special permission needed. -->
+        <activity
+            android:name=".clipboard.ProcessTextActivity"
             android:exported="true"
-            android:label="@string/clipboard_accessibility_service_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            android:label="@string/copycopy_action_label"
+            android:theme="@android:style/Theme.NoDisplay">
             <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/clipboard_accessibility_service_config" />
-        </service>
+        </activity>
 
         <receiver
             android:name=".BootReceiver"
