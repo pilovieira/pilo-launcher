@@ -4,12 +4,12 @@ import br.com.pilovieira.launcher.auth.AuthManager
 import com.google.firebase.database.FirebaseDatabase
 
 // Mirrors the local clipboard history to Realtime Database so the web app at
-// pilo-clipboard.web.app can show it. Same convention as the rest of the Firebase
-// project: the root of the path is the signed-in user's uid, and this app owns the
-// "clipboard-launcher" child under it. A no-op whenever the user isn't signed in.
+// pilfy.web.app can show it. Unlike the rest of the Firebase project (where the root is
+// directly the user's uid), Pilfy's own data lives under its own "pilfy" root, keyed by
+// uid: pilfy/<uid>/<entryId>. A no-op whenever the user isn't signed in.
 object ClipboardSync {
 
-    private const val childKey = "clipboard-launcher"
+    private const val rootKey = "pilfy"
 
     // Tags every entry this device writes so ClipboardAlertService can tell apart entries
     // that originated here (which shouldn't trigger the on-device alert modal) from ones
@@ -18,7 +18,7 @@ object ClipboardSync {
 
     fun clipboardRef() =
         AuthManager.currentUser?.uid?.let { uid ->
-            FirebaseDatabase.getInstance().getReference(uid).child(childKey)
+            FirebaseDatabase.getInstance().getReference(rootKey).child(uid)
         }
 
     fun push(entry: ClipboardEntry) {

@@ -17,10 +17,8 @@ const auth = getAuth(app)
 const db = getDatabase(app)
 const googleAuthProvider = new GoogleAuthProvider()
 
-// Same convention as the Android app / Fiado web: root path is the user's uid, and each
-// app that shares this Firebase project owns one top-level child under it. The launcher's
-// clipboard entries live at <uid>/clipboard-launcher/<entryId>.
-const clipboardPath = (uid) => `${uid}/clipboard-launcher`
+// Pilfy owns its own top-level root, keyed by uid: pilfy/<uid>/<entryId>.
+const clipboardPath = (uid) => `pilfy/${uid}`
 
 class FirebaseApi {
   static registerAuthListener(listener) {
