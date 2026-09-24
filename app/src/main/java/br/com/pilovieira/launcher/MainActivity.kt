@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.net.Uri
 import android.provider.Settings
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -336,6 +337,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onOpenSettings = {
                             currentScreen = Screen.SETTINGS
+                        },
+                        onOpenPilfy = {
+                            openPilfy()
                         },
                         isDefaultLauncher = isDefault,
                         onSetDefaultClick = {
@@ -876,6 +880,33 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    private fun openPilfy() {
+        val intent = packageManager.getLaunchIntentForPackage(PILFY_PACKAGE_NAME)
+        if (intent != null) {
+            startActivity(intent)
+        } else {
+            try {
+                startActivity(
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("market://details?id=$PILFY_PACKAGE_NAME")
+                    )
+                )
+            } catch (e: Exception) {
+                startActivity(
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://play.google.com/store/apps/details?id=$PILFY_PACKAGE_NAME")
+                    )
+                )
+            }
+        }
+    }
+
+    companion object {
+        private const val PILFY_PACKAGE_NAME = "br.com.pilfy.app"
+    }
 }
 
 @Composable
@@ -1238,6 +1269,44 @@ fun SettingsIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun PilfyIcon(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val stroke = size.minDimension * 0.1f
+
+        // Clipboard body
+        drawRoundRect(
+            color = Color.White,
+            topLeft = androidx.compose.ui.geometry.Offset(w * 0.16f, h * 0.12f),
+            size = androidx.compose.ui.geometry.Size(w * 0.68f, h * 0.78f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.1f, w * 0.1f),
+            style = Stroke(width = stroke)
+        )
+
+        // Clip at the top
+        drawRoundRect(
+            color = Color.White,
+            topLeft = androidx.compose.ui.geometry.Offset(w * 0.36f, h * 0.02f),
+            size = androidx.compose.ui.geometry.Size(w * 0.28f, h * 0.16f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.04f, w * 0.04f)
+        )
+
+        // Lines
+        val lineStroke = size.minDimension * 0.08f
+        listOf(0.42f, 0.6f, 0.78f).forEach { yFrac ->
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(w * 0.3f, h * yFrac),
+                end = androidx.compose.ui.geometry.Offset(w * 0.7f, h * yFrac),
+                strokeWidth = lineStroke,
+                cap = StrokeCap.Round
+            )
+        }
+    }
+}
+
+@Composable
 fun RefreshIcon(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
@@ -1455,6 +1524,7 @@ fun LauncherScreen(
     apps: List<AppInfo>,
     onAppClick: (AppInfo) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenPilfy: () -> Unit,
     isDefaultLauncher: Boolean,
     onSetDefaultClick: () -> Unit,
     hiddenAppsCount: Int,
@@ -1573,6 +1643,21 @@ fun LauncherScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         SearchIcon(modifier = Modifier.size(14.dp))
                     }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFF333333),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .clickable(onClick = onOpenPilfy),
+                    contentAlignment = Alignment.Center
+                ) {
+                    PilfyIcon(modifier = Modifier.size(16.dp))
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Box(
