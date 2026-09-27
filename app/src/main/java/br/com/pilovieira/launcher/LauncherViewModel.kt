@@ -40,6 +40,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val keySortedListDensity = "key_sorted_list_density"
     private val keyUnsortedListDensity = "key_unsorted_list_density"
     private val keySortByUsage = "key_sort_by_usage"
+    private val keySortUsedAppsAlphabetically = "key_sort_used_apps_alphabetically"
     private val customLabelPrefix = "label_"
     private val openCountPrefix = "open_count_"
     private val recentTimePrefix = "recent_time_"
@@ -91,6 +92,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _sortByUsageEnabled = MutableStateFlow(prefs.getBoolean(keySortByUsage, false))
     val sortByUsageEnabled: StateFlow<Boolean> = _sortByUsageEnabled.asStateFlow()
 
+    // When usage sorting is on, this controls whether the "used apps" section is itself
+    // ordered by usage weight (default) or alphabetically.
+    private val _sortUsedAppsAlphabetically = MutableStateFlow(prefs.getBoolean(keySortUsedAppsAlphabetically, false))
+    val sortUsedAppsAlphabetically: StateFlow<Boolean> = _sortUsedAppsAlphabetically.asStateFlow()
+
     // All installed apps, with any custom labels applied and re-sorted.
     val allApps: StateFlow<List<AppInfo>> = combine(_rawApps, _customLabels) { raw, labels ->
         raw.map { app ->
@@ -119,10 +125,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         allApps,
         _hiddenAppKeys,
         usageData,
-        _sortByUsageEnabled
-    ) { all, hidden, usage, sortByUsage ->
+        _sortByUsageEnabled,
+        _sortUsedAppsAlphabetically
+    ) { all, hidden, usage, sortByUsage, sortUsedAlphabetically ->
         val visible = all.filter { app -> !hidden.contains(app.key) }
-        if (sortByUsage) {
+        if (sortByUsage && !sortUsedAlphabetically) {
             val now = System.currentTimeMillis()
             visible.sortedWith(
                 compareByDescending<AppInfo> { app ->
@@ -271,6 +278,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun setSortByUsageEnabled(enabled: Boolean) {
         _sortByUsageEnabled.value = enabled
         prefs.edit().putBoolean(keySortByUsage, enabled).apply()
+    }
+
+    fun setSortUsedAppsAlphabetically(enabled: Boolean) {
+        _sortUsedAppsAlphabetically.value = enabled
+        prefs.edit().putBoolean(keySortUsedAppsAlphabetically, enabled).apply()
     }
 
     fun clearUsageStats() {

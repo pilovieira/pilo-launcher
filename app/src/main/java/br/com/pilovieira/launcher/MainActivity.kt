@@ -297,6 +297,7 @@ class MainActivity : ComponentActivity() {
             val sortedListDensity by viewModel.sortedListDensity.collectAsState()
             val unsortedListDensity by viewModel.unsortedListDensity.collectAsState()
             val sortByUsageEnabled by viewModel.sortByUsageEnabled.collectAsState()
+            val sortUsedAppsAlphabetically by viewModel.sortUsedAppsAlphabetically.collectAsState()
             val openCounts by viewModel.openCounts.collectAsState()
 
             MaterialTheme(colorScheme = darkColorScheme()) {
@@ -502,6 +503,10 @@ class MainActivity : ComponentActivity() {
                         sortByUsageEnabled = sortByUsageEnabled,
                         onSortByUsageChange = { enabled ->
                             viewModel.setSortByUsageEnabled(enabled)
+                        },
+                        sortUsedAppsAlphabetically = sortUsedAppsAlphabetically,
+                        onSortUsedAppsAlphabeticallyChange = { enabled ->
+                            viewModel.setSortUsedAppsAlphabetically(enabled)
                         },
                         sortedListDensity = sortedListDensity,
                         onSortedListDensityChange = { density ->
@@ -2108,6 +2113,8 @@ fun SettingsScreen(
     onSearchWidgetChange: (Boolean) -> Unit,
     sortByUsageEnabled: Boolean,
     onSortByUsageChange: (Boolean) -> Unit,
+    sortUsedAppsAlphabetically: Boolean,
+    onSortUsedAppsAlphabeticallyChange: (Boolean) -> Unit,
     sortedListDensity: ListDensity,
     onSortedListDensityChange: (ListDensity) -> Unit,
     unsortedListDensity: ListDensity,
@@ -2694,6 +2701,45 @@ fun SettingsScreen(
                     uncheckedBorderColor = Color.Transparent
                 )
             )
+        }
+
+        if (sortByUsageEnabled) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.sort_used_apps_alphabetically),
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.sort_used_apps_alphabetically_desc),
+                        color = Color.Gray,
+                        fontSize = 13.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Switch(
+                    checked = sortUsedAppsAlphabetically,
+                    onCheckedChange = onSortUsedAppsAlphabeticallyChange,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.Black,
+                        checkedTrackColor = Color.White,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = Color(0xFF333333),
+                        uncheckedBorderColor = Color.Transparent
+                    )
+                )
+            }
         }
 
         Column(modifier = Modifier.padding(bottom = 12.dp)) {
