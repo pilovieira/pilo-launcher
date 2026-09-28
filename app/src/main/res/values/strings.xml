@@ -59,6 +59,9 @@
     <string name="sort_by_usage_desc">Most-used apps move to the top of the list</string>
     <string name="sort_used_apps_alphabetically">Sort used apps alphabetically</string>
     <string name="sort_used_apps_alphabetically_desc">Order the most-used section by name instead of click count</string>
+    <string name="auto_hide_unused_apps">Auto-hide unused apps</string>
+    <string name="auto_hide_unused_apps_desc">Apps not opened in 7 days are hidden automatically; opening them again un-hides them</string>
+    <string name="auto_hidden_badge">auto</string>
     <string name="sorted_list_density">List size (used apps)</string>
     <string name="unsorted_list_density">List size (unused apps)</string>
     <string name="clear_usage_stats">Clear usage counter</string>

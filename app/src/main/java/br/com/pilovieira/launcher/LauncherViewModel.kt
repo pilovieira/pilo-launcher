@@ -41,6 +41,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val keyUnsortedListDensity = "key_unsorted_list_density"
     private val keySortByUsage = "key_sort_by_usage"
     private val keySortUsedAppsAlphabetically = "key_sort_used_apps_alphabetically"
+    private val keyAutoHideUnusedApps = "key_auto_hide_unused_apps"
+    private val keyAutoHiddenAppKeys = "key_auto_hidden_app_keys"
     private val customLabelPrefix = "label_"
     private val openCountPrefix = "open_count_"
     private val recentTimePrefix = "recent_time_"
@@ -56,10 +58,20 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // so it drops back into the "never used" group at the bottom of the app list.
     private val usageResetAfterMs = 3L * 24 * 60 * 60 * 1000
 
+    // When auto-hide is enabled, an app that goes this long without being opened is
+    // automatically moved into the hidden apps list.
+    private val autoHideAfterMs = 7L * 24 * 60 * 60 * 1000
+
     private val _rawApps = MutableStateFlow<List<AppInfo>>(emptyList())
 
     private val _hiddenAppKeys = MutableStateFlow<Set<String>>(loadHiddenAppKeys())
     val hiddenAppKeys: StateFlow<Set<String>> = _hiddenAppKeys.asStateFlow()
+
+    // Subset of `_hiddenAppKeys` that was hidden by the auto-hide feature rather than by
+    // the user directly, so opening one of these apps again can un-hide it automatically,
+    // and the hidden apps list can mark it as auto-hidden.
+    private val _autoHiddenAppKeys = MutableStateFlow<Set<String>>(loadAutoHiddenAppKeys())
+    val autoHiddenAppKeys: StateFlow<Set<String>> = _autoHiddenAppKeys.asStateFlow()
 
     private val _customLabels = MutableStateFlow<Map<String, String>>(loadCustomLabels())
     val customLabels: StateFlow<Map<String, String>> = _customLabels.asStateFlow()
@@ -96,6 +108,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // ordered by usage weight (default) or alphabetically.
     private val _sortUsedAppsAlphabetically = MutableStateFlow(prefs.getBoolean(keySortUsedAppsAlphabetically, false))
     val sortUsedAppsAlphabetically: StateFlow<Boolean> = _sortUsedAppsAlphabetically.asStateFlow()
+
+    // Automatically hides apps that haven't been opened in over `autoHideAfterMs`.
+    private val _autoHideUnusedEnabled = MutableStateFlow(prefs.getBoolean(keyAutoHideUnusedApps, false))
+    val autoHideUnusedEnabled: StateFlow<Boolean> = _autoHideUnusedEnabled.asStateFlow()
 
     // All installed apps, with any custom labels applied and re-sorted.
     val allApps: StateFlow<List<AppInfo>> = combine(_rawApps, _customLabels) { raw, labels ->
@@ -165,11 +181,16 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     init {
         loadApps()
         purgeStaleUsageStats()
+        autoHideStaleApps()
         registerPackageReceiver()
     }
 
     private fun loadHiddenAppKeys(): Set<String> {
         return prefs.getStringSet(keyHiddenApps, emptySet())?.toSet() ?: emptySet()
+    }
+
+    private fun loadAutoHiddenAppKeys(): Set<String> {
+        return prefs.getStringSet(keyAutoHiddenAppKeys, emptySet())?.toSet() ?: emptySet()
     }
 
     private fun loadCustomLabels(): Map<String, String> {
@@ -229,6 +250,28 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         _usageScores.value = _usageScores.value - staleKeys.toSet()
     }
 
+    // When auto-hide is enabled, moves any app that hasn't been opened in over
+    // `autoHideAfterMs` into the hidden apps list. Apps that have never been opened at
+    // all are left alone, since there is no "last used" time to measure staleness from.
+    fun autoHideStaleApps() {
+        if (!_autoHideUnusedEnabled.value) return
+
+        val now = System.currentTimeMillis()
+        val staleKeys = _recentAppTimestamps.value
+            .filter { (key, lastOpen) -> (now - lastOpen) > autoHideAfterMs && key !in _hiddenAppKeys.value }
+            .keys
+        if (staleKeys.isEmpty()) return
+
+        val updatedHidden = _hiddenAppKeys.value + staleKeys
+        _hiddenAppKeys.value = updatedHidden
+        val updatedAutoHidden = _autoHiddenAppKeys.value + staleKeys
+        _autoHiddenAppKeys.value = updatedAutoHidden
+        prefs.edit()
+            .putStringSet(keyHiddenApps, updatedHidden)
+            .putStringSet(keyAutoHiddenAppKeys, updatedAutoHidden)
+            .apply()
+    }
+
     private fun loadOpenCounts(): Map<String, Int> {
         return prefs.all
             .filterKeys { it.startsWith(openCountPrefix) }
@@ -285,6 +328,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.edit().putBoolean(keySortUsedAppsAlphabetically, enabled).apply()
     }
 
+    fun setAutoHideUnusedEnabled(enabled: Boolean) {
+        _autoHideUnusedEnabled.value = enabled
+        prefs.edit().putBoolean(keyAutoHideUnusedApps, enabled).apply()
+        if (enabled) {
+            autoHideStaleApps()
+        }
+    }
+
     fun clearUsageStats() {
         val editor = prefs.edit()
         _openCounts.value.keys.forEach { key -> editor.remove(openCountPrefix + key) }
@@ -312,7 +363,16 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             updated.add(app.key)
         }
         _hiddenAppKeys.value = updated
-        prefs.edit().putStringSet(keyHiddenApps, updated).apply()
+
+        // A direct visibility change from the user overrides auto-hide bookkeeping,
+        // whichever direction it goes.
+        val updatedAutoHidden = _autoHiddenAppKeys.value - app.key
+        _autoHiddenAppKeys.value = updatedAutoHidden
+
+        prefs.edit()
+            .putStringSet(keyHiddenApps, updated)
+            .putStringSet(keyAutoHiddenAppKeys, updatedAutoHidden)
+            .apply()
     }
 
     fun renameApp(app: AppInfo, newLabel: String) {
@@ -329,6 +389,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun recordAppOpened(app: AppInfo) {
+        if (app.key in _autoHiddenAppKeys.value) {
+            val updatedHidden = _hiddenAppKeys.value - app.key
+            val updatedAutoHidden = _autoHiddenAppKeys.value - app.key
+            _hiddenAppKeys.value = updatedHidden
+            _autoHiddenAppKeys.value = updatedAutoHidden
+            prefs.edit()
+                .putStringSet(keyHiddenApps, updatedHidden)
+                .putStringSet(keyAutoHiddenAppKeys, updatedAutoHidden)
+                .apply()
+        }
+
         val updated = _recentAppKeys.value.toMutableList()
         updated.remove(app.key)
         updated.add(0, app.key)

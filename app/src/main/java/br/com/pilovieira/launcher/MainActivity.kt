@@ -298,6 +298,8 @@ class MainActivity : ComponentActivity() {
             val unsortedListDensity by viewModel.unsortedListDensity.collectAsState()
             val sortByUsageEnabled by viewModel.sortByUsageEnabled.collectAsState()
             val sortUsedAppsAlphabetically by viewModel.sortUsedAppsAlphabetically.collectAsState()
+            val autoHideUnusedEnabled by viewModel.autoHideUnusedEnabled.collectAsState()
+            val autoHiddenAppKeys by viewModel.autoHiddenAppKeys.collectAsState()
             val openCounts by viewModel.openCounts.collectAsState()
 
             MaterialTheme(colorScheme = darkColorScheme()) {
@@ -508,6 +510,10 @@ class MainActivity : ComponentActivity() {
                         onSortUsedAppsAlphabeticallyChange = { enabled ->
                             viewModel.setSortUsedAppsAlphabetically(enabled)
                         },
+                        autoHideUnusedEnabled = autoHideUnusedEnabled,
+                        onAutoHideUnusedChange = { enabled ->
+                            viewModel.setAutoHideUnusedEnabled(enabled)
+                        },
                         sortedListDensity = sortedListDensity,
                         onSortedListDensityChange = { density ->
                             viewModel.setSortedListDensity(density)
@@ -546,6 +552,7 @@ class MainActivity : ComponentActivity() {
                     HiddenAppsScreen(
                         allApps = allApps,
                         hiddenAppKeys = hiddenAppKeys,
+                        autoHiddenAppKeys = autoHiddenAppKeys,
                         onAppClick = { app ->
                             launchApp(app)
                         },
@@ -2115,6 +2122,8 @@ fun SettingsScreen(
     onSortByUsageChange: (Boolean) -> Unit,
     sortUsedAppsAlphabetically: Boolean,
     onSortUsedAppsAlphabeticallyChange: (Boolean) -> Unit,
+    autoHideUnusedEnabled: Boolean,
+    onAutoHideUnusedChange: (Boolean) -> Unit,
     sortedListDensity: ListDensity,
     onSortedListDensityChange: (ListDensity) -> Unit,
     unsortedListDensity: ListDensity,
@@ -2740,6 +2749,43 @@ fun SettingsScreen(
                     )
                 )
             }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.auto_hide_unused_apps),
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.auto_hide_unused_apps_desc),
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Switch(
+                checked = autoHideUnusedEnabled,
+                onCheckedChange = onAutoHideUnusedChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.Black,
+                    checkedTrackColor = Color.White,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFF333333),
+                    uncheckedBorderColor = Color.Transparent
+                )
+            )
         }
 
         Column(modifier = Modifier.padding(bottom = 12.dp)) {
@@ -3857,6 +3903,7 @@ private fun weatherDayLabel(dateStr: String, index: Int, todayLabel: String): St
 fun HiddenAppsScreen(
     allApps: List<AppInfo>,
     hiddenAppKeys: Set<String>,
+    autoHiddenAppKeys: Set<String>,
     onAppClick: (AppInfo) -> Unit,
     onRenameApp: (AppInfo, String) -> Unit,
     onBackClick: () -> Unit,
@@ -3941,7 +3988,8 @@ fun HiddenAppsScreen(
                         app = app,
                         onClick = { onAppClick(app) },
                         onLongClick = { appForContextMenu = app },
-                        listDensity = listDensity
+                        listDensity = listDensity,
+                        isAutoHidden = autoHiddenAppKeys.contains(app.key)
                     )
                 }
             }
@@ -4111,6 +4159,7 @@ fun AppListItem(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     listDensity: ListDensity = ListDensity.NORMAL,
+    isAutoHidden: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val verticalPadding = if (listDensity == ListDensity.COMPACT) 6.dp else 12.dp
@@ -4122,10 +4171,26 @@ fun AppListItem(
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(vertical = verticalPadding)
     ) {
-        Text(
-            text = app.label,
-            color = Color.White,
-            fontSize = fontSize
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = app.label,
+                color = Color.White,
+                fontSize = fontSize
+            )
+            if (isAutoHidden) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFF333333), shape = RoundedCornerShape(4.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.auto_hidden_badge),
+                        color = Color.Gray,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        }
     }
 }
