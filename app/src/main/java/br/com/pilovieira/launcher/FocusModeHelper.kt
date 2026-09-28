@@ -39,7 +39,14 @@ object FocusModeHelper {
         return notificationManager?.isNotificationPolicyAccessGranted == true
     }
 
+    fun isWeekend(): Boolean {
+        val dayOfWeek = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        return dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY
+    }
+
     fun isWithinVibrateWindow(): Boolean {
+        if (isWeekend()) return false
+
         val calendar = Calendar.getInstance()
         val hour = calendar.get(Calendar.HOUR_OF_DAY)
         // Between 9:00 (inclusive) and 18:00 (exclusive)
