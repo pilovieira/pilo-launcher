@@ -38,6 +38,7 @@
     <string name="more_apps">More apps</string>
     <string name="app_info">App info</string>
     <string name="uninstall">Uninstall</string>
+    <string name="clear_app_counter">Clear counter</string>
     <string name="could_not_open_app_info">Could not open app info</string>
     <string name="could_not_uninstall_app">Could not uninstall app</string>
     <string name="clock_style">Clock style</string>

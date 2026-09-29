@@ -361,6 +361,9 @@ class MainActivity : ComponentActivity() {
                         onRenameApp = { app, newLabel ->
                             viewModel.renameApp(app, newLabel)
                         },
+                        onClearAppCounter = { app ->
+                            viewModel.clearUsageStatsForApp(app)
+                        },
                         sortByUsageEnabled = sortByUsageEnabled,
                         sortedListDensity = sortedListDensity,
                         unsortedListDensity = unsortedListDensity,
@@ -428,6 +431,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onRenameApp = { app, newLabel ->
                             viewModel.renameApp(app, newLabel)
+                        },
+                        onClearAppCounter = { app ->
+                            viewModel.clearUsageStatsForApp(app)
                         },
                         onBackClick = {
                             currentScreen = Screen.LAUNCHER
@@ -558,6 +564,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onRenameApp = { app, newLabel ->
                             viewModel.renameApp(app, newLabel)
+                        },
+                        onClearAppCounter = { app ->
+                            viewModel.clearUsageStatsForApp(app)
                         },
                         onBackClick = {
                             currentScreen = Screen.LAUNCHER
@@ -1544,6 +1553,7 @@ fun LauncherScreen(
     onOpenRecentApps: () -> Unit,
     onOpenCarMode: () -> Unit,
     onRenameApp: (AppInfo, String) -> Unit,
+    onClearAppCounter: (AppInfo) -> Unit,
     sortByUsageEnabled: Boolean,
     sortedListDensity: ListDensity,
     unsortedListDensity: ListDensity,
@@ -1825,7 +1835,8 @@ fun LauncherScreen(
             onRenameClick = {
                 appBeingRenamed = contextApp
                 appForContextMenu = null
-            }
+            },
+            onClearCounterClick = { onClearAppCounter(contextApp) }
         )
     }
 
@@ -1846,7 +1857,8 @@ fun LauncherScreen(
 fun AppContextMenuDialog(
     app: AppInfo,
     onDismiss: () -> Unit,
-    onRenameClick: () -> Unit
+    onRenameClick: () -> Unit,
+    onClearCounterClick: (() -> Unit)? = null
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -1913,6 +1925,19 @@ fun AppContextMenuDialog(
                         }
                         .padding(vertical = 12.dp)
                 )
+                if (onClearCounterClick != null) {
+                    Text(
+                        text = stringResource(R.string.clear_app_counter),
+                        fontSize = 16.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onClearCounterClick()
+                                onDismiss()
+                            }
+                            .padding(vertical = 12.dp)
+                    )
+                }
             }
         },
         confirmButton = {
@@ -1929,6 +1954,7 @@ fun RecentAppsScreen(
     onAppClick: (AppInfo) -> Unit,
     onClearClick: () -> Unit,
     onRenameApp: (AppInfo, String) -> Unit,
+    onClearAppCounter: (AppInfo) -> Unit,
     onBackClick: () -> Unit,
     listDensity: ListDensity,
     modifier: Modifier = Modifier
@@ -2040,7 +2066,8 @@ fun RecentAppsScreen(
             onRenameClick = {
                 appBeingRenamed = contextApp
                 appForContextMenu = null
-            }
+            },
+            onClearCounterClick = { onClearAppCounter(contextApp) }
         )
     }
 
@@ -3906,6 +3933,7 @@ fun HiddenAppsScreen(
     autoHiddenAppKeys: Set<String>,
     onAppClick: (AppInfo) -> Unit,
     onRenameApp: (AppInfo, String) -> Unit,
+    onClearAppCounter: (AppInfo) -> Unit,
     onBackClick: () -> Unit,
     listDensity: ListDensity,
     modifier: Modifier = Modifier
@@ -4004,7 +4032,8 @@ fun HiddenAppsScreen(
             onRenameClick = {
                 appBeingRenamed = contextApp
                 appForContextMenu = null
-            }
+            },
+            onClearCounterClick = { onClearAppCounter(contextApp) }
         )
     }
 

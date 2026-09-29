@@ -37,6 +37,7 @@
     <string name="more_apps">Mais apps</string>
     <string name="app_info">Informações do app</string>
     <string name="uninstall">Desinstalar</string>
+    <string name="clear_app_counter">Limpar contador</string>
     <string name="could_not_open_app_info">Não foi possível abrir as informações do app</string>
     <string name="could_not_uninstall_app">Não foi possível desinstalar o app</string>
     <string name="clock_style">Estilo do relógio</string>

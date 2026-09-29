@@ -345,6 +345,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         _usageScores.value = emptyMap()
     }
 
+    fun clearUsageStatsForApp(app: AppInfo) {
+        prefs.edit()
+            .remove(openCountPrefix + app.key)
+            .remove(usageScorePrefix + app.key)
+            .apply()
+        _openCounts.value = _openCounts.value - app.key
+        _usageScores.value = _usageScores.value - app.key
+    }
+
     fun setLockScreenEnabled(enabled: Boolean) {
         _lockScreenEnabled.value = enabled
         prefs.edit().putBoolean(keyLockScreenEnabled, enabled).apply()
