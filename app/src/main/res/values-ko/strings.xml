@@ -85,9 +85,6 @@
     <string name="auto_car_mode_device">차량 블루투스 기기</string>
     <string name="auto_car_mode_device_any">모든 차량 오디오(추정)</string>
     <string name="auto_car_mode_no_paired_devices">페어링된 블루투스 기기가 없습니다</string>
-    <string name="usage_access">사용 정보 접근</string>
-    <string name="usage_access_desc">최근 사용한 앱에 앱 사용 시간을 표시하려면 접근 권한을 부여하세요</string>
-    <string name="usage_access_granted">허용됨</string>
     <string name="car_mode_slot_title">위치</string>
     <string name="car_mode_choose_widget">위젯 선택</string>
     <string name="car_mode_choose_widget_cell">위젯 선택 (이 셀)</string>

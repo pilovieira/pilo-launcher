@@ -85,9 +85,6 @@
     <string name="auto_car_mode_device">Bluetooth-Gerät des Autos</string>
     <string name="auto_car_mode_device_any">Beliebiges Autoradio (Schätzung)</string>
     <string name="auto_car_mode_no_paired_devices">Keine gekoppelten Bluetooth-Geräte gefunden</string>
-    <string name="usage_access">Nutzungszugriff</string>
-    <string name="usage_access_desc">Gewähre Zugriff, um die Nutzungsdauer der Apps in Zuletzt verwendet anzuzeigen</string>
-    <string name="usage_access_granted">Gewährt</string>
     <string name="car_mode_slot_title">Platz</string>
     <string name="car_mode_choose_widget">Widget auswählen</string>
     <string name="car_mode_choose_widget_cell">Widget auswählen (diese Zelle)</string>

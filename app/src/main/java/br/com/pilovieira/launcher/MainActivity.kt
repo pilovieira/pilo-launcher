@@ -124,7 +124,6 @@ class MainActivity : ComponentActivity() {
     private var isDefault by mutableStateOf(false)
     private var isFocusMode by mutableStateOf(false)
     private var hasNotificationAccess by mutableStateOf(false)
-    private var hasUsageAccess by mutableStateOf(false)
     private var carModeEnabled by mutableStateOf(false)
     private var autoCarModeEnabled by mutableStateOf(false)
     private var weather by mutableStateOf<WeatherData?>(null)
@@ -267,7 +266,6 @@ class MainActivity : ComponentActivity() {
         isDefault = isDefaultLauncher()
         isFocusMode = FocusModeHelper.isFocusModeEnabled(this)
         hasNotificationAccess = NotificationAccessHelper.isNotificationListenerEnabled(this)
-        hasUsageAccess = UsageStatsHelper.hasUsageAccess(this)
         carModeEnabled = CarModePrefs.isEnabled(this)
         autoCarModeEnabled = CarModePrefs.isAutoEnabled(this)
         autoCarDevices = CarModePrefs.getAutoDevices(this)
@@ -496,10 +494,6 @@ class MainActivity : ComponentActivity() {
                         onRequestNotificationAccess = {
                             requestNotificationAccess()
                         },
-                        hasUsageAccess = hasUsageAccess,
-                        onRequestUsageAccess = {
-                            UsageStatsHelper.requestUsageAccess(this@MainActivity)
-                        },
                         searchWidgetEnabled = searchWidgetId != null,
                         onSearchWidgetChange = { enabled ->
                             if (enabled) {
@@ -606,7 +600,6 @@ class MainActivity : ComponentActivity() {
         isDefault = isDefaultLauncher()
         isFocusMode = FocusModeHelper.isFocusModeEnabled(this)
         hasNotificationAccess = NotificationAccessHelper.isNotificationListenerEnabled(this)
-        hasUsageAccess = UsageStatsHelper.hasUsageAccess(this)
         if (isFocusMode) {
             FocusModeHelper.applyRingerMode(this)
         }
@@ -1959,11 +1952,6 @@ fun RecentAppsScreen(
     listDensity: ListDensity,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val usageTimes = remember {
-        val oneDayMs = 24L * 60 * 60 * 1000
-        UsageStatsHelper.getUsageTimeByPackage(context, System.currentTimeMillis() - oneDayMs)
-    }
     var appForContextMenu by remember { mutableStateOf<AppInfo?>(null) }
     var appBeingRenamed by remember { mutableStateOf<AppInfo?>(null) }
 
@@ -2048,7 +2036,6 @@ fun RecentAppsScreen(
                 ) { app ->
                     RecentAppListItem(
                         app = app,
-                        usageTimeMillis = usageTimes[app.packageName] ?: 0L,
                         onClick = { onAppClick(app) },
                         onLongClick = { appForContextMenu = app },
                         listDensity = listDensity
@@ -2088,7 +2075,6 @@ fun RecentAppsScreen(
 @Composable
 fun RecentAppListItem(
     app: AppInfo,
-    usageTimeMillis: Long,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     listDensity: ListDensity = ListDensity.NORMAL,
@@ -2097,22 +2083,15 @@ fun RecentAppListItem(
     val verticalPadding = if (listDensity == ListDensity.COMPACT) 6.dp else 12.dp
     val fontSize = if (listDensity == ListDensity.COMPACT) 15.sp else 18.sp
 
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(vertical = verticalPadding),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(vertical = verticalPadding)
     ) {
         Text(
             text = app.label,
             color = Color.White,
-            fontSize = fontSize
-        )
-        Text(
-            text = if (usageTimeMillis > 0L) UsageStatsHelper.formatDuration(usageTimeMillis) else "",
-            color = Color.Gray,
             fontSize = fontSize
         )
     }
@@ -2141,8 +2120,6 @@ fun SettingsScreen(
     onLockScreenEnabledChange: (Boolean) -> Unit,
     hasNotificationAccess: Boolean,
     onRequestNotificationAccess: () -> Unit,
-    hasUsageAccess: Boolean,
-    onRequestUsageAccess: () -> Unit,
     searchWidgetEnabled: Boolean,
     onSearchWidgetChange: (Boolean) -> Unit,
     sortByUsageEnabled: Boolean,
@@ -2516,47 +2493,6 @@ fun SettingsScreen(
                         Text(stringResource(R.string.cancel))
                     }
                 }
-            )
-        }
-
-        HorizontalDivider(
-            modifier = Modifier.padding(vertical = 8.dp),
-            color = Color(0xFF222222)
-        )
-
-        // Usage Access Setting Item
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onRequestUsageAccess)
-                .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.usage_access),
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = if (hasUsageAccess) {
-                        stringResource(R.string.usage_access_granted)
-                    } else {
-                        stringResource(R.string.usage_access_desc)
-                    },
-                    color = Color.Gray,
-                    fontSize = 13.sp
-                )
-            }
-
-            Text(
-                text = stringResource(R.string.edit_arrow),
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium
             )
         }
 

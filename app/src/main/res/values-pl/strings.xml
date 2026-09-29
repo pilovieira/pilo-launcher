@@ -85,9 +85,6 @@
     <string name="auto_car_mode_device">Urządzenie Bluetooth samochodu</string>
     <string name="auto_car_mode_device_any">Dowolne radio samochodowe (przybliżenie)</string>
     <string name="auto_car_mode_no_paired_devices">Nie znaleziono sparowanych urządzeń Bluetooth</string>
-    <string name="usage_access">Dostęp do Użycia</string>
-    <string name="usage_access_desc">Przyznaj dostęp, aby pokazać czas użytkowania aplikacji w Ostatnich Aplikacjach</string>
-    <string name="usage_access_granted">Przyznano</string>
     <string name="car_mode_slot_title">Miejsce</string>
     <string name="car_mode_choose_widget">Wybierz widżet</string>
     <string name="car_mode_choose_widget_cell">Wybierz widżet (ta komórka)</string>

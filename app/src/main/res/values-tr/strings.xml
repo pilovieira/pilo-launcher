@@ -85,9 +85,6 @@
     <string name="auto_car_mode_device">Aracın Bluetooth cihazı</string>
     <string name="auto_car_mode_device_any">Herhangi bir araç müzik sistemi (tahmini)</string>
     <string name="auto_car_mode_no_paired_devices">Eşleştirilmiş Bluetooth cihazı bulunamadı</string>
-    <string name="usage_access">Kullanım Erişimi</string>
-    <string name="usage_access_desc">Son Kullanılan Uygulamalar\'da uygulama kullanım süresini göstermek için erişim verin</string>
-    <string name="usage_access_granted">Verildi</string>
     <string name="car_mode_slot_title">Alan</string>
     <string name="car_mode_choose_widget">Widget seç</string>
     <string name="car_mode_choose_widget_cell">Widget seç (bu hücre)</string>

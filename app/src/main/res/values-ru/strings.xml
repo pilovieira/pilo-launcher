@@ -85,9 +85,6 @@
     <string name="auto_car_mode_device">Bluetooth-устройство автомобиля</string>
     <string name="auto_car_mode_device_any">Любая автомагнитола (примерное определение)</string>
     <string name="auto_car_mode_no_paired_devices">Сопряжённые Bluetooth-устройства не найдены</string>
-    <string name="usage_access">Доступ к статистике использования</string>
-    <string name="usage_access_desc">Предоставьте доступ, чтобы показывать время использования приложений в разделе «Недавние»</string>
-    <string name="usage_access_granted">Предоставлено</string>
     <string name="car_mode_slot_title">Место</string>
     <string name="car_mode_choose_widget">Выбрать виджет</string>
     <string name="car_mode_choose_widget_cell">Выбрать виджет (эта ячейка)</string>

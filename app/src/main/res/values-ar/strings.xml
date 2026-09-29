@@ -85,9 +85,6 @@
     <string name="auto_car_mode_device">جهاز البلوتوث الخاص بالسيارة</string>
     <string name="auto_car_mode_device_any">أي نظام صوت للسيارة (تخمين تقريبي)</string>
     <string name="auto_car_mode_no_paired_devices">لم يتم العثور على أجهزة بلوتوث مقترنة</string>
-    <string name="usage_access">إذن الوصول للاستخدام</string>
-    <string name="usage_access_desc">امنح الإذن لعرض وقت استخدام التطبيقات في الأخيرة</string>
-    <string name="usage_access_granted">تم المنح</string>
     <string name="car_mode_slot_title">الموضع</string>
     <string name="car_mode_choose_widget">اختر ودجت</string>
     <string name="car_mode_choose_widget_cell">اختر ودجت (هذه الخلية)</string>

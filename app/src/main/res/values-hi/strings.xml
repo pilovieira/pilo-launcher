@@ -85,9 +85,6 @@
     <string name="auto_car_mode_device">कार का ब्लूटूथ डिवाइस</string>
     <string name="auto_car_mode_device_any">कोई भी कार स्टीरियो (अनुमानित)</string>
     <string name="auto_car_mode_no_paired_devices">कोई पेयर किया गया ब्लूटूथ डिवाइस नहीं मिला</string>
-    <string name="usage_access">उपयोग एक्सेस</string>
-    <string name="usage_access_desc">हाल के ऐप्स में ऐप के उपयोग का समय दिखाने के लिए एक्सेस दें</string>
-    <string name="usage_access_granted">दिया गया</string>
     <string name="car_mode_slot_title">स्थान</string>
     <string name="car_mode_choose_widget">विजेट चुनें</string>
     <string name="car_mode_choose_widget_cell">विजेट चुनें (इस सेल में)</string>

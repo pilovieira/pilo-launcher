@@ -85,9 +85,6 @@
     <string name="auto_car_mode_device">Perangkat Bluetooth mobil</string>
     <string name="auto_car_mode_device_any">Sistem audio mobil apa pun (perkiraan)</string>
     <string name="auto_car_mode_no_paired_devices">Tidak ditemukan perangkat Bluetooth yang dipasangkan</string>
-    <string name="usage_access">Akses Penggunaan</string>
-    <string name="usage_access_desc">Berikan akses untuk menampilkan waktu penggunaan aplikasi di Aplikasi Terbaru</string>
-    <string name="usage_access_granted">Diberikan</string>
     <string name="car_mode_slot_title">Slot</string>
     <string name="car_mode_choose_widget">Pilih widget</string>
     <string name="car_mode_choose_widget_cell">Pilih widget (sel ini)</string>
