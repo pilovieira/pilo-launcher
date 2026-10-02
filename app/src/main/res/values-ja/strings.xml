@@ -42,15 +42,6 @@
     <string name="clock_style">時計のスタイル</string>
     <string name="clock_style_analog">アナログ</string>
     <string name="clock_style_digital">デジタル</string>
-    <string name="lock_screen">カスタムロック画面</string>
-    <string name="lock_screen_desc">画面が点灯したときに独自の時計と通知数を表示します</string>
-    <string name="grant_notification_access">通知数を表示するには通知へのアクセスを許可してください</string>
-    <string name="unlock_prompt_title">ロック解除</string>
-    <string name="tap_to_unlock">タップしてロックを解除</string>
-    <string name="notification_count_singular">%1$d 件の通知</string>
-    <string name="notification_count_plural">%1$d 件の通知</string>
-    <string name="lock_screen_service_channel">ロック画面</string>
-    <string name="lock_screen_service_notification">カスタムロック画面が有効です</string>
     <string name="list_density">アプリリストのサイズ</string>
     <string name="list_density_compact">コンパクト</string>
     <string name="list_density_normal">標準</string>

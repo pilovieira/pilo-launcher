@@ -35,7 +35,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val keyHiddenApps = "key_hidden_apps"
     private val keyRecentApps = "key_recent_apps"
     private val keyClockStyle = "key_clock_style"
-    private val keyLockScreenEnabled = "key_lock_screen_enabled"
     private val keyListDensity = "key_list_density"
     private val keySortedListDensity = "key_sorted_list_density"
     private val keyUnsortedListDensity = "key_unsorted_list_density"
@@ -86,9 +85,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private val _clockStyle = MutableStateFlow(loadClockStyle())
     val clockStyle: StateFlow<ClockStyle> = _clockStyle.asStateFlow()
-
-    private val _lockScreenEnabled = MutableStateFlow(prefs.getBoolean(keyLockScreenEnabled, false))
-    val lockScreenEnabled: StateFlow<Boolean> = _lockScreenEnabled.asStateFlow()
 
     private val _listDensity = MutableStateFlow(loadListDensity())
     val listDensity: StateFlow<ListDensity> = _listDensity.asStateFlow()
@@ -352,16 +348,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             .apply()
         _openCounts.value = _openCounts.value - app.key
         _usageScores.value = _usageScores.value - app.key
-    }
-
-    fun setLockScreenEnabled(enabled: Boolean) {
-        _lockScreenEnabled.value = enabled
-        prefs.edit().putBoolean(keyLockScreenEnabled, enabled).apply()
-        if (enabled) {
-            LockScreenService.start(getApplication())
-        } else {
-            LockScreenService.stop(getApplication())
-        }
     }
 
     fun setAppVisibility(app: AppInfo, visible: Boolean) {

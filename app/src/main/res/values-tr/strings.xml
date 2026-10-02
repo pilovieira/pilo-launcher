@@ -43,15 +43,6 @@
     <string name="clock_style">Saat stili</string>
     <string name="clock_style_analog">Analog</string>
     <string name="clock_style_digital">Dijital</string>
-    <string name="lock_screen">Özel Kilit Ekranı</string>
-    <string name="lock_screen_desc">Ekran açıldığında kendi saatinizi ve bildirim sayınızı gösterir</string>
-    <string name="grant_notification_access">Bildirim sayısını göstermek için bildirim erişimi verin</string>
-    <string name="unlock_prompt_title">Kilidi Aç</string>
-    <string name="tap_to_unlock">Kilidi açmak için dokunun</string>
-    <string name="notification_count_singular">%1$d bildirim</string>
-    <string name="notification_count_plural">%1$d bildirim</string>
-    <string name="lock_screen_service_channel">Kilit ekranı</string>
-    <string name="lock_screen_service_notification">Özel kilit ekranı etkin</string>
     <string name="list_density">Uygulama listesi boyutu</string>
     <string name="list_density_compact">Kompakt</string>
     <string name="list_density_normal">Normal</string>

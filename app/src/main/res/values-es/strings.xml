@@ -42,15 +42,6 @@
     <string name="clock_style">Estilo del reloj</string>
     <string name="clock_style_analog">Analógico</string>
     <string name="clock_style_digital">Digital</string>
-    <string name="lock_screen">Pantalla de Bloqueo Personalizada</string>
-    <string name="lock_screen_desc">Muestra tu propio reloj y el número de notificaciones cuando se enciende la pantalla</string>
-    <string name="grant_notification_access">Concede acceso a notificaciones para mostrar el recuento</string>
-    <string name="unlock_prompt_title">Desbloquear</string>
-    <string name="tap_to_unlock">Toca para desbloquear</string>
-    <string name="notification_count_singular">%1$d notificación</string>
-    <string name="notification_count_plural">%1$d notificaciones</string>
-    <string name="lock_screen_service_channel">Pantalla de bloqueo</string>
-    <string name="lock_screen_service_notification">La pantalla de bloqueo personalizada está activa</string>
     <string name="list_density">Tamaño de la lista de apps</string>
     <string name="list_density_compact">Compacta</string>
     <string name="list_density_normal">Normal</string>

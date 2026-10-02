@@ -42,15 +42,6 @@
     <string name="clock_style">Uhrenstil</string>
     <string name="clock_style_analog">Analog</string>
     <string name="clock_style_digital">Digital</string>
-    <string name="lock_screen">Individueller Sperrbildschirm</string>
-    <string name="lock_screen_desc">Zeigt deine eigene Uhr und die Anzahl der Benachrichtigungen an, wenn der Bildschirm eingeschaltet wird</string>
-    <string name="grant_notification_access">Gewähre Benachrichtigungszugriff, um die Anzahl anzuzeigen</string>
-    <string name="unlock_prompt_title">Entsperren</string>
-    <string name="tap_to_unlock">Zum Entsperren tippen</string>
-    <string name="notification_count_singular">%1$d Benachrichtigung</string>
-    <string name="notification_count_plural">%1$d Benachrichtigungen</string>
-    <string name="lock_screen_service_channel">Sperrbildschirm</string>
-    <string name="lock_screen_service_notification">Individueller Sperrbildschirm ist aktiv</string>
     <string name="list_density">Größe der App-Liste</string>
     <string name="list_density_compact">Kompakt</string>
     <string name="list_density_normal">Normal</string>

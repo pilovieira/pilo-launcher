@@ -42,15 +42,6 @@
     <string name="clock_style">نمط الساعة</string>
     <string name="clock_style_analog">تناظرية</string>
     <string name="clock_style_digital">رقمية</string>
-    <string name="lock_screen">شاشة قفل مخصصة</string>
-    <string name="lock_screen_desc">تعرض ساعتك الخاصة وعدد الإشعارات عند تشغيل الشاشة</string>
-    <string name="grant_notification_access">امنح إذن الوصول إلى الإشعارات لعرض عددها</string>
-    <string name="unlock_prompt_title">فتح القفل</string>
-    <string name="tap_to_unlock">اضغط لفتح القفل</string>
-    <string name="notification_count_singular">إشعار واحد (%1$d)</string>
-    <string name="notification_count_plural">%1$d إشعارات</string>
-    <string name="lock_screen_service_channel">شاشة القفل</string>
-    <string name="lock_screen_service_notification">شاشة القفل المخصصة مفعّلة</string>
     <string name="list_density">حجم قائمة التطبيقات</string>
     <string name="list_density_compact">مضغوطة</string>
     <string name="list_density_normal">عادية</string>

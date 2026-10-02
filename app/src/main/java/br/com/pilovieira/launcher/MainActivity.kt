@@ -123,7 +123,6 @@ class MainActivity : ComponentActivity() {
     private var currentScreen by mutableStateOf(Screen.LAUNCHER)
     private var isDefault by mutableStateOf(false)
     private var isFocusMode by mutableStateOf(false)
-    private var hasNotificationAccess by mutableStateOf(false)
     private var carModeEnabled by mutableStateOf(false)
     private var autoCarModeEnabled by mutableStateOf(false)
     private var weather by mutableStateOf<WeatherData?>(null)
@@ -195,12 +194,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private val postNotificationsLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) {
-        viewModel.setLockScreenEnabled(true)
-    }
-
     private val bluetoothConnectLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -265,7 +258,6 @@ class MainActivity : ComponentActivity() {
 
         isDefault = isDefaultLauncher()
         isFocusMode = FocusModeHelper.isFocusModeEnabled(this)
-        hasNotificationAccess = NotificationAccessHelper.isNotificationListenerEnabled(this)
         carModeEnabled = CarModePrefs.isEnabled(this)
         autoCarModeEnabled = CarModePrefs.isAutoEnabled(this)
         autoCarDevices = CarModePrefs.getAutoDevices(this)
@@ -290,7 +282,6 @@ class MainActivity : ComponentActivity() {
             val hiddenAppKeys by viewModel.hiddenAppKeys.collectAsState()
             val recentApps by viewModel.recentApps.collectAsState()
             val clockStyle by viewModel.clockStyle.collectAsState()
-            val lockScreenEnabled by viewModel.lockScreenEnabled.collectAsState()
             val listDensity by viewModel.listDensity.collectAsState()
             val sortedListDensity by viewModel.sortedListDensity.collectAsState()
             val unsortedListDensity by viewModel.unsortedListDensity.collectAsState()
@@ -486,14 +477,6 @@ class MainActivity : ComponentActivity() {
                         onListDensityChange = { density ->
                             viewModel.setListDensity(density)
                         },
-                        lockScreenEnabled = lockScreenEnabled,
-                        onLockScreenEnabledChange = { enabled ->
-                            handleLockScreenToggle(enabled)
-                        },
-                        hasNotificationAccess = hasNotificationAccess,
-                        onRequestNotificationAccess = {
-                            requestNotificationAccess()
-                        },
                         searchWidgetEnabled = searchWidgetId != null,
                         onSearchWidgetChange = { enabled ->
                             if (enabled) {
@@ -599,7 +582,6 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         isDefault = isDefaultLauncher()
         isFocusMode = FocusModeHelper.isFocusModeEnabled(this)
-        hasNotificationAccess = NotificationAccessHelper.isNotificationListenerEnabled(this)
         if (isFocusMode) {
             FocusModeHelper.applyRingerMode(this)
         }
@@ -798,26 +780,6 @@ class MainActivity : ComponentActivity() {
 
         autoCarModeEnabled = true
         CarModePrefs.setAutoEnabled(this, true)
-    }
-
-    private fun handleLockScreenToggle(enabled: Boolean) {
-        if (enabled &&
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) !=
-                PackageManager.PERMISSION_GRANTED
-        ) {
-            postNotificationsLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-            return
-        }
-        viewModel.setLockScreenEnabled(enabled)
-    }
-
-    private fun requestNotificationAccess() {
-        try {
-            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-        } catch (_: Exception) {
-            Toast.makeText(this, getString(R.string.could_not_open_notification_settings), Toast.LENGTH_SHORT).show()
-        }
     }
 
     private fun handleFocusModeToggle(enabled: Boolean) {
@@ -2116,10 +2078,6 @@ fun SettingsScreen(
     onClockStyleChange: (ClockStyle) -> Unit,
     listDensity: ListDensity,
     onListDensityChange: (ListDensity) -> Unit,
-    lockScreenEnabled: Boolean,
-    onLockScreenEnabledChange: (Boolean) -> Unit,
-    hasNotificationAccess: Boolean,
-    onRequestNotificationAccess: () -> Unit,
     searchWidgetEnabled: Boolean,
     onSearchWidgetChange: (Boolean) -> Unit,
     sortByUsageEnabled: Boolean,
@@ -2828,73 +2786,6 @@ fun SettingsScreen(
                 Text(
                     text = stringResource(R.string.usage_stats_cleared),
                     color = Color(0xFF4CAF50),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-
-        HorizontalDivider(
-            modifier = Modifier.padding(vertical = 8.dp),
-            color = Color(0xFF222222)
-        )
-
-        // Lock Screen Setting Item
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.lock_screen),
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.lock_screen_desc),
-                    color = Color.Gray,
-                    fontSize = 13.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Switch(
-                checked = lockScreenEnabled,
-                onCheckedChange = onLockScreenEnabledChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.Black,
-                    checkedTrackColor = Color.White,
-                    uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = Color(0xFF333333),
-                    uncheckedBorderColor = Color.Transparent
-                )
-            )
-        }
-
-        if (lockScreenEnabled && !hasNotificationAccess) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onRequestNotificationAccess)
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = stringResource(R.string.grant_notification_access),
-                    color = Color(0xFFAAAAAA),
-                    fontSize = 13.sp,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = stringResource(R.string.edit_arrow),
-                    color = Color.White,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )

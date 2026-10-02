@@ -42,15 +42,6 @@
     <string name="clock_style">Стиль часов</string>
     <string name="clock_style_analog">Аналоговые</string>
     <string name="clock_style_digital">Цифровые</string>
-    <string name="lock_screen">Собственный экран блокировки</string>
-    <string name="lock_screen_desc">Показывает свои часы и количество уведомлений при включении экрана</string>
-    <string name="grant_notification_access">Предоставьте доступ к уведомлениям, чтобы показывать их количество</string>
-    <string name="unlock_prompt_title">Разблокировать</string>
-    <string name="tap_to_unlock">Нажмите, чтобы разблокировать</string>
-    <string name="notification_count_singular">%1$d уведомление</string>
-    <string name="notification_count_plural">%1$d уведомлений</string>
-    <string name="lock_screen_service_channel">Экран блокировки</string>
-    <string name="lock_screen_service_notification">Собственный экран блокировки активен</string>
     <string name="list_density">Размер списка приложений</string>
     <string name="list_density_compact">Компактный</string>
     <string name="list_density_normal">Обычный</string>
