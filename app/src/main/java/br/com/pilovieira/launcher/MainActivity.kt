@@ -117,6 +117,7 @@ enum class Screen {
     RENAME_APPS,
     CAR_MODE,
     WEATHER_DETAILS,
+    WEATHER_RADAR,
     SEARCH_WIDGET_PICKER
 }
 
@@ -317,10 +318,23 @@ class MainActivity : ComponentActivity() {
                     WeatherDetailsScreen(
                         details = weatherDetails,
                         loading = weatherDetailsLoading,
-                        latitude = weather?.latitude,
-                        longitude = weather?.longitude,
+                        hasLocation = weather != null,
+                        onOpenRadar = { currentScreen = Screen.WEATHER_RADAR },
                         onBackClick = { currentScreen = Screen.HOME }
                     )
+                }
+                Screen.WEATHER_RADAR -> {
+                    BackHandler {
+                        currentScreen = Screen.WEATHER_DETAILS
+                    }
+                    val currentWeather = weather
+                    if (currentWeather != null) {
+                        WeatherRadarScreen(
+                            latitude = currentWeather.latitude,
+                            longitude = currentWeather.longitude,
+                            onBackClick = { currentScreen = Screen.WEATHER_DETAILS }
+                        )
+                    }
                 }
                 Screen.LAUNCHER -> {
                     BackHandler {
@@ -3378,8 +3392,8 @@ private fun CarModePickerScreen(
 fun WeatherDetailsScreen(
     details: WeatherDetails?,
     loading: Boolean,
-    latitude: Double?,
-    longitude: Double?,
+    hasLocation: Boolean,
+    onOpenRadar: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -3524,26 +3538,36 @@ fun WeatherDetailsScreen(
                     HorizontalDivider(color = Color(0xFF1E1E1E), thickness = 0.5.dp)
                 }
 
-                if (latitude != null && longitude != null) {
-                    Spacer(modifier = Modifier.height(24.dp))
+                if (hasLocation) {
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                    Text(
-                        text = stringResource(R.string.weather_storm_radar),
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    WeatherRadarMap(
-                        latitude = latitude,
-                        longitude = longitude,
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(1f)
+                            .border(
+                                width = 1.dp,
+                                color = Color(0xFF333333),
+                                shape = RoundedCornerShape(10.dp)
+                            )
                             .clip(RoundedCornerShape(10.dp))
-                    )
+                            .clickable(onClick = onOpenRadar)
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = stringResource(R.string.weather_storm_radar),
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "→",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -3553,42 +3577,73 @@ fun WeatherDetailsScreen(
 }
 
 @Composable
-fun WeatherRadarMap(
+fun WeatherRadarScreen(
     latitude: Double,
     longitude: Double,
+    onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    AndroidView(
-        modifier = modifier,
-        factory = { context ->
-            WebView(context).apply {
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                webChromeClient = object : WebChromeClient() {
-                    override fun onConsoleMessage(message: ConsoleMessage): Boolean {
-                        Log.d("WeatherRadar", "${message.message()} (${message.sourceId()}:${message.lineNumber()})")
-                        return true
-                    }
-                }
-                webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView, url: String?) {
-                        super.onPageFinished(view, url)
-                        view.evaluateJavascript("initRadar($latitude, $longitude);", null)
-                    }
-
-                    override fun onReceivedError(
-                        view: WebView,
-                        errorCode: Int,
-                        description: String?,
-                        failingUrl: String?
-                    ) {
-                        Log.e("WeatherRadar", "Error loading $failingUrl: $description ($errorCode)")
-                    }
-                }
-                loadUrl("file:///android_asset/radar.html")
-            }
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .systemBarsPadding()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.back),
+                color = Color.Gray,
+                fontSize = 16.sp,
+                modifier = Modifier.clickable(onClick = onBackClick)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = stringResource(R.string.weather_storm_radar),
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
-    )
+
+        AndroidView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            factory = { context ->
+                WebView(context).apply {
+                    settings.javaScriptEnabled = true
+                    settings.domStorageEnabled = true
+                    webChromeClient = object : WebChromeClient() {
+                        override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+                            Log.d("WeatherRadar", "${message.message()} (${message.sourceId()}:${message.lineNumber()})")
+                            return true
+                        }
+                    }
+                    webViewClient = object : WebViewClient() {
+                        override fun onPageFinished(view: WebView, url: String?) {
+                            super.onPageFinished(view, url)
+                            view.evaluateJavascript("initRadar($latitude, $longitude);", null)
+                        }
+
+                        override fun onReceivedError(
+                            view: WebView,
+                            errorCode: Int,
+                            description: String?,
+                            failingUrl: String?
+                        ) {
+                            Log.e("WeatherRadar", "Error loading $failingUrl: $description ($errorCode)")
+                        }
+                    }
+                    loadUrl("file:///android_asset/radar.html")
+                }
+            }
+        )
+    }
 }
 
 @Composable
