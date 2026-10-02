@@ -100,6 +100,7 @@
     <string name="weather_precipitation_value">%1$.1f mm</string>
     <string name="weather_precipitation_percent">%1$d%%</string>
     <string name="weather_forecast_title">Próximos dias</string>
+    <string name="weather_storm_radar">Radar de tempestade</string>
     <string name="weather_temp_range">%1$d° / %2$d°</string>
     <string name="weather_today">Hoje</string>
     <string name="search_widget">Widget de Busca</string>
