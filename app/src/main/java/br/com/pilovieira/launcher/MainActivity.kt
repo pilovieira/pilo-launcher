@@ -8,6 +8,9 @@ import android.appwidget.AppWidgetProviderInfo
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.util.Log
+import android.webkit.ConsoleMessage
+import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.os.Build
@@ -3513,7 +3516,7 @@ fun WeatherDetailsScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = stringResource(R.string.edit_arrow),
+                            text = "→",
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
@@ -3608,15 +3611,32 @@ fun WeatherRadarScreen(
         }
 
         AndroidView(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
             factory = { context ->
                 WebView(context).apply {
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
+                    webChromeClient = object : WebChromeClient() {
+                        override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+                            Log.d("WeatherRadar", "${message.message()} (${message.sourceId()}:${message.lineNumber()})")
+                            return true
+                        }
+                    }
                     webViewClient = object : WebViewClient() {
                         override fun onPageFinished(view: WebView, url: String?) {
                             super.onPageFinished(view, url)
                             view.evaluateJavascript("initRadar($latitude, $longitude);", null)
+                        }
+
+                        override fun onReceivedError(
+                            view: WebView,
+                            errorCode: Int,
+                            description: String?,
+                            failingUrl: String?
+                        ) {
+                            Log.e("WeatherRadar", "Error loading $failingUrl: $description ($errorCode)")
                         }
                     }
                     loadUrl("file:///android_asset/radar.html")
