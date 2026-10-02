@@ -68,10 +68,21 @@
                     var frame = frames[i];
                     if (!frame) return;
                     var newLayer = L.tileLayer(frame.url, { opacity: 0.75, zIndex: 10 });
+                    var previousLayer = radarLayer;
+                    var swapped = false;
+                    var swap = function () {
+                        if (swapped) return;
+                        swapped = true;
+                        if (previousLayer) {
+                            map.removeLayer(previousLayer);
+                        }
+                    };
+                    // Only drop the previous frame once the new one has finished loading its
+                    // tiles, so the overlay never flashes blank mid-transition; a timeout
+                    // covers the case where some tiles fail to load and 'load' never fires.
+                    newLayer.once('load', swap);
+                    setTimeout(swap, 2000);
                     newLayer.addTo(map);
-                    if (radarLayer) {
-                        map.removeLayer(radarLayer);
-                    }
                     radarLayer = newLayer;
                     var d = new Date(frame.time * 1000);
                     setStatus((frame.isForecast ? 'Forecast ' : '') + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
