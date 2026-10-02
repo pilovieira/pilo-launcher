@@ -119,7 +119,7 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: LauncherViewModel by viewModels()
 
-    private var currentScreen by mutableStateOf(Screen.LAUNCHER)
+    private var currentScreen by mutableStateOf(Screen.HOME)
     private var isDefault by mutableStateOf(false)
     private var isFocusMode by mutableStateOf(false)
     private var carModeEnabled by mutableStateOf(false)
@@ -544,7 +544,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.hasCategory(Intent.CATEGORY_HOME)) {
-            currentScreen = if (carModeEnabled) Screen.CAR_MODE else Screen.LAUNCHER
+            currentScreen = if (carModeEnabled) Screen.CAR_MODE else Screen.HOME
         }
     }
 
