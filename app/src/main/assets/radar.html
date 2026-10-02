@@ -11,29 +11,55 @@
             top: 0; left: 0; right: 0; bottom: 0;
             background: #000;
         }
-        #statusLabel {
+        #controlBar {
             position: fixed;
             bottom: 12px;
             left: 12px;
             right: 12px;
             z-index: 1000;
             background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            padding: 4px 6px;
+        }
+        #controlBar button {
+            -webkit-tap-highlight-color: transparent;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 18px;
+            line-height: 1;
+            padding: 8px 10px;
+            cursor: pointer;
+        }
+        #controlBar button:active {
+            opacity: 0.5;
+        }
+        #timeLabel {
+            flex: 1;
             color: #fff;
             font-family: sans-serif;
             font-size: 13px;
-            padding: 6px 10px;
-            border-radius: 8px;
-            pointer-events: none;
+            padding: 0 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
-    <div id="statusLabel">Starting…</div>
+    <div id="controlBar">
+        <button id="prevBtn" aria-label="Previous frame">⏮</button>
+        <button id="playPauseBtn" aria-label="Play/Pause">⏸</button>
+        <button id="nextBtn" aria-label="Next frame">⏭</button>
+        <div id="timeLabel">Starting…</div>
+    </div>
 
     <script>
         function setStatus(text) {
-            var el = document.getElementById('statusLabel');
+            var el = document.getElementById('timeLabel');
             if (el) el.textContent = text;
         }
         window.onerror = function (message, source, lineno, colno) {
@@ -63,6 +89,11 @@
                 var radarLayer = null;
                 var frames = [];
                 var frameIndex = 0;
+                var intervalId = null;
+                var playing = true;
+                var frameDelayMs = 1100;
+
+                var playPauseBtn = document.getElementById('playPauseBtn');
 
                 function showFrame(i) {
                     var frame = frames[i];
@@ -92,6 +123,47 @@
                     setStatus((frame.isForecast ? 'Forecast ' : '') + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
                 }
 
+                function startAutoplay() {
+                    stopAutoplay();
+                    intervalId = setInterval(function () {
+                        frameIndex = (frameIndex + 1) % frames.length;
+                        showFrame(frameIndex);
+                    }, frameDelayMs);
+                }
+
+                function stopAutoplay() {
+                    if (intervalId) {
+                        clearInterval(intervalId);
+                        intervalId = null;
+                    }
+                }
+
+                function setPlaying(value) {
+                    playing = value;
+                    playPauseBtn.textContent = playing ? '⏸' : '▶';
+                    if (playing) {
+                        startAutoplay();
+                    } else {
+                        stopAutoplay();
+                    }
+                }
+
+                function stepTo(newIndex) {
+                    setPlaying(false);
+                    frameIndex = ((newIndex % frames.length) + frames.length) % frames.length;
+                    showFrame(frameIndex);
+                }
+
+                playPauseBtn.addEventListener('click', function () {
+                    setPlaying(!playing);
+                });
+                document.getElementById('prevBtn').addEventListener('click', function () {
+                    stepTo(frameIndex - 1);
+                });
+                document.getElementById('nextBtn').addEventListener('click', function () {
+                    stepTo(frameIndex + 1);
+                });
+
                 setStatus('Loading radar frames…');
                 fetch('https://api.rainviewer.com/public/weather-maps.json')
                     .then(function (r) { return r.json(); })
@@ -112,11 +184,7 @@
 
                         frameIndex = past.length > 0 ? past.length - 1 : 0;
                         showFrame(frameIndex);
-
-                        setInterval(function () {
-                            frameIndex = (frameIndex + 1) % frames.length;
-                            showFrame(frameIndex);
-                        }, 1100);
+                        setPlaying(true);
                     })
                     .catch(function (err) {
                         setStatus('Radar frames failed to load: ' + err);
