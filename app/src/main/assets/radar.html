@@ -73,9 +73,13 @@
                     var swap = function () {
                         if (swapped) return;
                         swapped = true;
-                        if (previousLayer) {
-                            map.removeLayer(previousLayer);
-                        }
+                        // Keep both layers on screen a bit longer after the new one loads,
+                        // so the transition overlaps instead of cutting straight across.
+                        setTimeout(function () {
+                            if (previousLayer) {
+                                map.removeLayer(previousLayer);
+                            }
+                        }, 500);
                     };
                     // Only drop the previous frame once the new one has finished loading its
                     // tiles, so the overlay never flashes blank mid-transition; a timeout
@@ -112,7 +116,7 @@
                         setInterval(function () {
                             frameIndex = (frameIndex + 1) % frames.length;
                             showFrame(frameIndex);
-                        }, 600);
+                        }, 1100);
                     })
                     .catch(function (err) {
                         setStatus('Radar frames failed to load: ' + err);
