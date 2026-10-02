@@ -26,8 +26,6 @@
     <string name="no_hidden_apps">لا توجد تطبيقات مخفية</string>
     <string name="unhide">إظهار</string>
     <string name="search_apps">البحث عن تطبيقات</string>
-    <string name="recent_apps">التطبيقات الأخيرة</string>
-    <string name="no_recent_apps">لا توجد تطبيقات حديثة</string>
     <string name="rename_apps">إعادة تسمية التطبيقات</string>
     <string name="rename_apps_desc">أعطِ تطبيقاتك أسماء مخصصة</string>
     <string name="rename">إعادة تسمية</string>

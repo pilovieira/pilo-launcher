@@ -26,8 +26,6 @@
     <string name="no_hidden_apps">Nessuna app nascosta</string>
     <string name="unhide">Mostra</string>
     <string name="search_apps">Cerca app</string>
-    <string name="recent_apps">App Recenti</string>
-    <string name="no_recent_apps">Nessuna app recente</string>
     <string name="rename_apps">Rinomina App</string>
     <string name="rename_apps_desc">Dai nomi personalizzati alle tue app</string>
     <string name="rename">Rinomina</string>

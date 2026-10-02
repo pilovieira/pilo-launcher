@@ -106,7 +106,6 @@ private const val CAR_MODE_WIDGET_HOST_ID = 8842
 enum class Screen {
     HOME,
     LAUNCHER,
-    RECENTS,
     SETTINGS,
     APP_VISIBILITY,
     HIDDEN_APPS,
@@ -280,7 +279,6 @@ class MainActivity : ComponentActivity() {
             val apps by viewModel.apps.collectAsState()
             val allApps by viewModel.allApps.collectAsState()
             val hiddenAppKeys by viewModel.hiddenAppKeys.collectAsState()
-            val recentApps by viewModel.recentApps.collectAsState()
             val clockStyle by viewModel.clockStyle.collectAsState()
             val listDensity by viewModel.listDensity.collectAsState()
             val sortedListDensity by viewModel.sortedListDensity.collectAsState()
@@ -304,8 +302,7 @@ class MainActivity : ComponentActivity() {
                         weatherRefreshing = weatherRefreshing,
                         onRefreshWeather = { refreshWeather(force = true) },
                         onOpenWeatherDetails = { openWeatherDetails() },
-                        onSwipeUp = { currentScreen = Screen.LAUNCHER },
-                        onSwipeDown = { currentScreen = Screen.RECENTS }
+                        onSwipeUp = { currentScreen = Screen.LAUNCHER }
                     )
                 }
                 Screen.WEATHER_DETAILS -> {
@@ -340,9 +337,6 @@ class MainActivity : ComponentActivity() {
                         hiddenAppsCount = hiddenAppKeys.size,
                         onOpenHiddenApps = {
                             currentScreen = Screen.HIDDEN_APPS
-                        },
-                        onOpenRecentApps = {
-                            currentScreen = Screen.RECENTS
                         },
                         onOpenCarMode = {
                             enableCarMode()
@@ -404,30 +398,6 @@ class MainActivity : ComponentActivity() {
                         onSplitRow = { rowIndex ->
                             setCarModeRowWide(rowIndex, false)
                         }
-                    )
-                }
-                Screen.RECENTS -> {
-                    BackHandler {
-                        currentScreen = Screen.LAUNCHER
-                    }
-                    RecentAppsScreen(
-                        recentApps = recentApps,
-                        onAppClick = { app ->
-                            launchApp(app)
-                        },
-                        onClearClick = {
-                            viewModel.clearRecentApps()
-                        },
-                        onRenameApp = { app, newLabel ->
-                            viewModel.renameApp(app, newLabel)
-                        },
-                        onClearAppCounter = { app ->
-                            viewModel.clearUsageStatsForApp(app)
-                        },
-                        onBackClick = {
-                            currentScreen = Screen.LAUNCHER
-                        },
-                        listDensity = listDensity
                     )
                 }
                 Screen.SETTINGS -> {
@@ -894,7 +864,6 @@ fun HomeScreen(
     onRefreshWeather: () -> Unit,
     onOpenWeatherDetails: () -> Unit,
     onSwipeUp: () -> Unit,
-    onSwipeDown: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -914,8 +883,6 @@ fun HomeScreen(
                         val threshold = 80f
                         if (totalDrag < -threshold) {
                             onSwipeUp()
-                        } else if (totalDrag > threshold) {
-                            onSwipeDown()
                         }
                     }
                 )
@@ -1172,29 +1139,6 @@ fun SearchIcon(modifier: Modifier = Modifier) {
             color = Color.White,
             start = handleStart,
             end = handleEnd,
-            strokeWidth = strokeWidth,
-            cap = StrokeCap.Round
-        )
-    }
-}
-
-@Composable
-fun ClearIcon(modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier) {
-        val strokeWidth = size.minDimension * 0.12f
-        val inset = size.minDimension * 0.08f
-
-        drawLine(
-            color = Color.White,
-            start = androidx.compose.ui.geometry.Offset(inset, inset),
-            end = androidx.compose.ui.geometry.Offset(size.width - inset, size.height - inset),
-            strokeWidth = strokeWidth,
-            cap = StrokeCap.Round
-        )
-        drawLine(
-            color = Color.White,
-            start = androidx.compose.ui.geometry.Offset(size.width - inset, inset),
-            end = androidx.compose.ui.geometry.Offset(inset, size.height - inset),
             strokeWidth = strokeWidth,
             cap = StrokeCap.Round
         )
@@ -1505,7 +1449,6 @@ fun LauncherScreen(
     onSetDefaultClick: () -> Unit,
     hiddenAppsCount: Int,
     onOpenHiddenApps: () -> Unit,
-    onOpenRecentApps: () -> Unit,
     onOpenCarMode: () -> Unit,
     onRenameApp: (AppInfo, String) -> Unit,
     onClearAppCounter: (AppInfo) -> Unit,
@@ -1547,8 +1490,6 @@ fun LauncherScreen(
                         val threshold = 80f
                         if (totalDrag < -threshold) {
                             onOpenHiddenApps()
-                        } else if (totalDrag > threshold) {
-                            onOpenRecentApps()
                         }
                     }
                 )
@@ -1901,162 +1842,6 @@ fun AppContextMenuDialog(
             }
         }
     )
-}
-
-@Composable
-fun RecentAppsScreen(
-    recentApps: List<AppInfo>,
-    onAppClick: (AppInfo) -> Unit,
-    onClearClick: () -> Unit,
-    onRenameApp: (AppInfo, String) -> Unit,
-    onClearAppCounter: (AppInfo) -> Unit,
-    onBackClick: () -> Unit,
-    listDensity: ListDensity,
-    modifier: Modifier = Modifier
-) {
-    var appForContextMenu by remember { mutableStateOf<AppInfo?>(null) }
-    var appBeingRenamed by remember { mutableStateOf<AppInfo?>(null) }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .systemBarsPadding()
-            .pointerInput(Unit) {
-                var totalDrag = 0f
-                detectHorizontalDragGestures(
-                    onDragStart = { totalDrag = 0f },
-                    onHorizontalDrag = { change, dragAmount ->
-                        change.consume()
-                        totalDrag += dragAmount
-                    },
-                    onDragEnd = {
-                        val threshold = 80f
-                        if (totalDrag < -threshold) {
-                            onBackClick()
-                        }
-                    }
-                )
-            }
-            .padding(horizontal = 24.dp, vertical = 16.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.back),
-                color = Color.Gray,
-                fontSize = 16.sp,
-                modifier = Modifier.clickable(onClick = onBackClick)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = stringResource(R.string.recent_apps),
-                color = Color.White,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
-            )
-            if (recentApps.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .clickable(onClick = onClearClick)
-                        .padding(8.dp)
-                ) {
-                    ClearIcon(modifier = Modifier.size(16.dp))
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (recentApps.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(R.string.no_recent_apps),
-                    color = Color.Gray,
-                    fontSize = 16.sp
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                items(
-                    items = recentApps,
-                    key = { it.key }
-                ) { app ->
-                    RecentAppListItem(
-                        app = app,
-                        onClick = { onAppClick(app) },
-                        onLongClick = { appForContextMenu = app },
-                        listDensity = listDensity
-                    )
-                }
-            }
-        }
-    }
-
-    val contextApp = appForContextMenu
-    if (contextApp != null) {
-        AppContextMenuDialog(
-            app = contextApp,
-            onDismiss = { appForContextMenu = null },
-            onRenameClick = {
-                appBeingRenamed = contextApp
-                appForContextMenu = null
-            },
-            onClearCounterClick = { onClearAppCounter(contextApp) }
-        )
-    }
-
-    val renameApp = appBeingRenamed
-    if (renameApp != null) {
-        RenameAppDialog(
-            app = renameApp,
-            onConfirm = { newLabel ->
-                onRenameApp(renameApp, newLabel)
-                appBeingRenamed = null
-            },
-            onDismiss = { appBeingRenamed = null }
-        )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun RecentAppListItem(
-    app: AppInfo,
-    onClick: () -> Unit,
-    onLongClick: (() -> Unit)? = null,
-    listDensity: ListDensity = ListDensity.NORMAL,
-    modifier: Modifier = Modifier
-) {
-    val verticalPadding = if (listDensity == ListDensity.COMPACT) 6.dp else 12.dp
-    val fontSize = if (listDensity == ListDensity.COMPACT) 15.sp else 18.sp
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(vertical = verticalPadding)
-    ) {
-        Text(
-            text = app.label,
-            color = Color.White,
-            fontSize = fontSize
-        )
-    }
 }
 
 @Composable

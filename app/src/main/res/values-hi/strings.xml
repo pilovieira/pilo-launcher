@@ -27,8 +27,6 @@
     <string name="no_hidden_apps">कोई छिपा हुआ ऐप नहीं</string>
     <string name="unhide">दिखाएं</string>
     <string name="search_apps">ऐप्स खोजें</string>
-    <string name="recent_apps">हाल के ऐप्स</string>
-    <string name="no_recent_apps">कोई हालिया ऐप नहीं</string>
     <string name="rename_apps">ऐप्स का नाम बदलें</string>
     <string name="rename_apps_desc">अपने ऐप्स को कस्टम नाम दें</string>
     <string name="rename">नाम बदलें</string>

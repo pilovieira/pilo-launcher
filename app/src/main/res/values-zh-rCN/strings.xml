@@ -26,8 +26,6 @@
     <string name="no_hidden_apps">没有隐藏的应用</string>
     <string name="unhide">取消隐藏</string>
     <string name="search_apps">搜索应用</string>
-    <string name="recent_apps">最近使用的应用</string>
-    <string name="no_recent_apps">没有最近使用的应用</string>
     <string name="rename_apps">重命名应用</string>
     <string name="rename_apps_desc">为你的应用设置自定义名称</string>
     <string name="rename">重命名</string>

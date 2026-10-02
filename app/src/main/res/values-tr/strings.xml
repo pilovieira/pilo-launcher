@@ -27,8 +27,6 @@
     <string name="no_hidden_apps">Gizli uygulama yok</string>
     <string name="unhide">Göster</string>
     <string name="search_apps">Uygulama ara</string>
-    <string name="recent_apps">Son Kullanılan Uygulamalar</string>
-    <string name="no_recent_apps">Son kullanılan uygulama yok</string>
     <string name="rename_apps">Uygulamaları Yeniden Adlandır</string>
     <string name="rename_apps_desc">Uygulamalarınıza özel isimler verin</string>
     <string name="rename">Yeniden adlandır</string>

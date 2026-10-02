@@ -26,8 +26,6 @@
     <string name="no_hidden_apps">Нет скрытых приложений</string>
     <string name="unhide">Показать</string>
     <string name="search_apps">Поиск приложений</string>
-    <string name="recent_apps">Недавние приложения</string>
-    <string name="no_recent_apps">Нет недавних приложений</string>
     <string name="rename_apps">Переименовать приложения</string>
     <string name="rename_apps_desc">Задайте своим приложениям собственные названия</string>
     <string name="rename">Переименовать</string>

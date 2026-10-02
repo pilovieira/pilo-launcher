@@ -27,8 +27,6 @@
     <string name="no_hidden_apps">No hidden apps</string>
     <string name="unhide">Unhide</string>
     <string name="search_apps">Search apps</string>
-    <string name="recent_apps">Recent Apps</string>
-    <string name="no_recent_apps">No recent apps</string>
     <string name="rename_apps">Rename Apps</string>
     <string name="rename_apps_desc">Give your apps custom names</string>
     <string name="rename">Rename</string>

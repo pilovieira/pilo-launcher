@@ -33,7 +33,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private val prefs = application.getSharedPreferences("launcher_app_prefs", Context.MODE_PRIVATE)
     private val keyHiddenApps = "key_hidden_apps"
-    private val keyRecentApps = "key_recent_apps"
     private val keyClockStyle = "key_clock_style"
     private val keyListDensity = "key_list_density"
     private val keySortedListDensity = "key_sorted_list_density"
@@ -46,8 +45,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val openCountPrefix = "open_count_"
     private val recentTimePrefix = "recent_time_"
     private val usageScorePrefix = "usage_score_"
-    private val maxRecentApps = 15
-    private val recentAppsWindowMs = 24L * 60 * 60 * 1000
 
     // Usage weight halves every 2 days since an app's last open, so recent habits
     // outweigh old ones instead of a lifetime open count dominating forever.
@@ -75,7 +72,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _customLabels = MutableStateFlow<Map<String, String>>(loadCustomLabels())
     val customLabels: StateFlow<Map<String, String>> = _customLabels.asStateFlow()
 
-    private val _recentAppKeys = MutableStateFlow<List<String>>(loadRecentAppKeys())
+    // Last-open timestamp per app, used for usage-weight decay and auto-hide staleness
+    // checks (not tied to any "recent apps" UI).
     private val _recentAppTimestamps = MutableStateFlow<Map<String, Long>>(loadRecentAppTimestamps())
 
     private val _openCounts = MutableStateFlow<Map<String, Int>>(loadOpenCounts())
@@ -155,19 +153,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    // Apps opened in the last 24 hours, most recent first.
-    val recentApps: StateFlow<List<AppInfo>> = combine(
-        allApps,
-        _recentAppKeys,
-        _recentAppTimestamps
-    ) { all, recentKeys, timestamps ->
-        val cutoff = System.currentTimeMillis() - recentAppsWindowMs
-        val byKey = all.associateBy { it.key }
-        recentKeys
-            .filter { key -> (timestamps[key] ?: 0L) >= cutoff }
-            .mapNotNull { byKey[it] }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             loadApps()
@@ -195,11 +180,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             .mapKeys { it.key.removePrefix(customLabelPrefix) }
             .mapNotNull { (key, value) -> (value as? String)?.let { key to it } }
             .toMap()
-    }
-
-    private fun loadRecentAppKeys(): List<String> {
-        val stored = prefs.getString(keyRecentApps, null) ?: return emptyList()
-        return stored.split("|").filter { it.isNotBlank() }
     }
 
     private fun loadRecentAppTimestamps(): Map<String, Long> {
@@ -395,13 +375,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 .apply()
         }
 
-        val updated = _recentAppKeys.value.toMutableList()
-        updated.remove(app.key)
-        updated.add(0, app.key)
-        val trimmed = if (updated.size > maxRecentApps) updated.take(maxRecentApps) else updated
-        _recentAppKeys.value = trimmed
-        prefs.edit().putString(keyRecentApps, trimmed.joinToString("|")).apply()
-
         val now = System.currentTimeMillis()
         val previousOpen = _recentAppTimestamps.value[app.key]
         val updatedTimestamps = _recentAppTimestamps.value.toMutableMap()
@@ -426,14 +399,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         updatedScores[app.key] = newScore
         _usageScores.value = updatedScores
         prefs.edit().putFloat(usageScorePrefix + app.key, newScore.toFloat()).apply()
-    }
-
-    fun clearRecentApps() {
-        val editor = prefs.edit().remove(keyRecentApps)
-        _recentAppKeys.value.forEach { key -> editor.remove(recentTimePrefix + key) }
-        editor.apply()
-        _recentAppKeys.value = emptyList()
-        _recentAppTimestamps.value = emptyMap()
     }
 
     fun loadApps() {
