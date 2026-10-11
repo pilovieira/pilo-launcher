@@ -228,14 +228,28 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // When auto-hide is enabled, moves any app that hasn't been opened in over
     // `autoHideAfterMs` into the hidden apps list. Apps that have never been opened at
-    // all are left alone, since there is no "last used" time to measure staleness from.
+    // all are included too, using their install time (from PackageManager) in place of
+    // a last-used time.
     fun autoHideStaleApps() {
         if (!_autoHideUnusedEnabled.value) return
 
         val now = System.currentTimeMillis()
-        val staleKeys = _recentAppTimestamps.value
+        val everOpenedStaleKeys = _recentAppTimestamps.value
             .filter { (key, lastOpen) -> (now - lastOpen) > autoHideAfterMs && key !in _hiddenAppKeys.value }
             .keys
+
+        val packageManager = getApplication<Application>().packageManager
+        val neverOpenedStaleKeys = _rawApps.value
+            .filter { app ->
+                app.key !in _recentAppTimestamps.value &&
+                    app.key !in _hiddenAppKeys.value &&
+                    runCatching { packageManager.getPackageInfo(app.packageName, 0).firstInstallTime }
+                        .getOrNull()
+                        ?.let { installTime -> (now - installTime) > autoHideAfterMs } == true
+            }
+            .map { it.key }
+
+        val staleKeys = everOpenedStaleKeys + neverOpenedStaleKeys
         if (staleKeys.isEmpty()) return
 
         val updatedHidden = _hiddenAppKeys.value + staleKeys
