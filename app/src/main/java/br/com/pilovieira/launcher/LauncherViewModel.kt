@@ -162,7 +162,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     init {
         loadApps()
         purgeStaleUsageStats()
-        autoHideStaleApps()
         registerPackageReceiver()
     }
 
@@ -443,6 +442,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
             withContext(Dispatchers.Main) {
                 _rawApps.value = appList
+                autoHideStaleApps()
             }
         }
     }
