@@ -348,9 +348,6 @@ class MainActivity : ComponentActivity() {
                         onOpenSettings = {
                             currentScreen = Screen.SETTINGS
                         },
-                        onOpenPilfy = {
-                            openPilfy()
-                        },
                         isDefaultLauncher = isDefault,
                         onSetDefaultClick = {
                             requestSetDefaultLauncher()
@@ -372,9 +369,6 @@ class MainActivity : ComponentActivity() {
                         sortedListDensity = sortedListDensity,
                         unsortedListDensity = unsortedListDensity,
                         openCounts = openCounts,
-                        searchWidgetId = searchWidgetId,
-                        appWidgetHost = appWidgetHost,
-                        appWidgetManager = appWidgetManager,
                         listDensity = listDensity
                     )
                 }
@@ -1465,7 +1459,6 @@ fun LauncherScreen(
     apps: List<AppInfo>,
     onAppClick: (AppInfo) -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenPilfy: () -> Unit,
     isDefaultLauncher: Boolean,
     onSetDefaultClick: () -> Unit,
     hiddenAppsCount: Int,
@@ -1477,22 +1470,12 @@ fun LauncherScreen(
     sortedListDensity: ListDensity,
     unsortedListDensity: ListDensity,
     openCounts: Map<String, Int>,
-    searchWidgetId: Int?,
-    appWidgetHost: AppWidgetHost,
-    appWidgetManager: AppWidgetManager,
     listDensity: ListDensity,
     modifier: Modifier = Modifier
 ) {
-    var searchQuery by remember { mutableStateOf("") }
     var appForContextMenu by remember { mutableStateOf<AppInfo?>(null) }
     var appBeingRenamed by remember { mutableStateOf<AppInfo?>(null) }
-    val filteredApps = remember(apps, searchQuery) {
-        if (searchQuery.isBlank()) {
-            apps
-        } else {
-            apps.filter { it.label.contains(searchQuery, ignoreCase = true) }
-        }
-    }
+    val filteredApps = apps
 
     Box(
         modifier = modifier
@@ -1537,68 +1520,7 @@ fun LauncherScreen(
                 ) {
                     CarIcon(modifier = Modifier.size(18.dp))
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                if (searchWidgetId != null) {
-                    CarModeWidgetView(
-                        appWidgetId = searchWidgetId,
-                        appWidgetHost = appWidgetHost,
-                        appWidgetManager = appWidgetManager,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                    )
-                } else {
-                    Row(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(36.dp)
-                            .border(
-                                width = 1.dp,
-                                color = Color(0xFF333333),
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                            .padding(horizontal = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            if (searchQuery.isEmpty()) {
-                                Text(
-                                    text = stringResource(R.string.search_apps),
-                                    color = Color(0xFF777777),
-                                    fontSize = 13.sp
-                                )
-                            }
-                            BasicTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                textStyle = TextStyle(color = Color.White, fontSize = 13.sp),
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                cursorBrush = androidx.compose.ui.graphics.SolidColor(Color.White)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        SearchIcon(modifier = Modifier.size(14.dp))
-                    }
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .border(
-                            width = 1.dp,
-                            color = Color(0xFF333333),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        .clickable(onClick = onOpenPilfy),
-                    contentAlignment = Alignment.Center
-                ) {
-                    PilfyIcon(modifier = Modifier.size(16.dp))
-                }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.weight(1f))
                 Box(
                     modifier = Modifier
                         .size(36.dp)
