@@ -25,7 +25,6 @@
     <string name="hidden_apps">隐藏的应用</string>
     <string name="no_hidden_apps">没有隐藏的应用</string>
     <string name="unhide">取消隐藏</string>
-    <string name="search_apps">搜索应用</string>
     <string name="rename_apps">重命名应用</string>
     <string name="rename_apps_desc">为你的应用设置自定义名称</string>
     <string name="rename">重命名</string>
@@ -95,6 +94,4 @@
     <string name="weather_forecast_title">未来几天</string>
     <string name="weather_temp_range">%1$d° / %2$d°</string>
     <string name="weather_today">今天</string>
-    <string name="search_widget">搜索小组件</string>
-    <string name="search_widget_desc">用 Google 搜索小组件替换搜索栏，输入即可直接搜索</string>
 </resources>

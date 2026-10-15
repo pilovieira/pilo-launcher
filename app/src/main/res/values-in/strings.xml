@@ -26,7 +26,6 @@
     <string name="hidden_apps">Aplikasi Tersembunyi</string>
     <string name="no_hidden_apps">Tidak ada aplikasi tersembunyi</string>
     <string name="unhide">Tampilkan</string>
-    <string name="search_apps">Cari aplikasi</string>
     <string name="rename_apps">Ganti Nama Aplikasi</string>
     <string name="rename_apps_desc">Beri nama khusus untuk aplikasi Anda</string>
     <string name="rename">Ganti nama</string>
@@ -95,6 +94,4 @@
     <string name="weather_forecast_title">Hari berikutnya</string>
     <string name="weather_temp_range">%1$d° / %2$d°</string>
     <string name="weather_today">Hari ini</string>
-    <string name="search_widget">Widget Pencarian</string>
-    <string name="search_widget_desc">Ganti bilah pencarian dengan widget Google Penelusuran, sehingga mengetik langsung mencari</string>
 </resources>

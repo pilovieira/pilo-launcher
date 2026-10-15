@@ -25,7 +25,6 @@
     <string name="hidden_apps">Aplicaciones Ocultas</string>
     <string name="no_hidden_apps">No hay aplicaciones ocultas</string>
     <string name="unhide">Mostrar</string>
-    <string name="search_apps">Buscar aplicaciones</string>
     <string name="rename_apps">Renombrar Aplicaciones</string>
     <string name="rename_apps_desc">Dale nombres personalizados a tus aplicaciones</string>
     <string name="rename">Renombrar</string>
@@ -95,6 +94,4 @@
     <string name="weather_forecast_title">Próximos días</string>
     <string name="weather_temp_range">%1$d° / %2$d°</string>
     <string name="weather_today">Hoy</string>
-    <string name="search_widget">Widget de Búsqueda</string>
-    <string name="search_widget_desc">Reemplaza la barra de búsqueda por el widget de Búsqueda de Google, para escribir y buscar directamente</string>
 </resources>

@@ -25,7 +25,6 @@
     <string name="hidden_apps">Ausgeblendete Apps</string>
     <string name="no_hidden_apps">Keine ausgeblendeten Apps</string>
     <string name="unhide">Einblenden</string>
-    <string name="search_apps">Apps suchen</string>
     <string name="rename_apps">Apps umbenennen</string>
     <string name="rename_apps_desc">Gib deinen Apps eigene Namen</string>
     <string name="rename">Umbenennen</string>
@@ -95,6 +94,4 @@
     <string name="weather_forecast_title">Nächste Tage</string>
     <string name="weather_temp_range">%1$d° / %2$d°</string>
     <string name="weather_today">Heute</string>
-    <string name="search_widget">Such-Widget</string>
-    <string name="search_widget_desc">Ersetzt die Suchleiste durch das Google-Such-Widget, sodass die Eingabe direkt sucht</string>
 </resources>

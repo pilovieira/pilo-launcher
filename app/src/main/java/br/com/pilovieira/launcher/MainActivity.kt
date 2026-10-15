@@ -117,8 +117,7 @@ enum class Screen {
     RENAME_APPS,
     CAR_MODE,
     WEATHER_DETAILS,
-    WEATHER_RADAR,
-    SEARCH_WIDGET_PICKER
+    WEATHER_RADAR
 }
 
 class MainActivity : ComponentActivity() {
@@ -134,8 +133,6 @@ class MainActivity : ComponentActivity() {
     private var weatherRefreshing by mutableStateOf(false)
     private var weatherDetails by mutableStateOf<WeatherDetails?>(null)
     private var weatherDetailsLoading by mutableStateOf(false)
-    private var searchWidgetId by mutableStateOf<Int?>(null)
-    private var showSearchWidgetPicker by mutableStateOf(false)
     private var autoCarDevices by mutableStateOf<List<CarModeBluetoothDevice>>(emptyList())
     private val carModeGridSize = CarModeGridSize.TWO_BY_THREE
     private var carModeRows by mutableStateOf<List<CarModeRowConfig>>(emptyList())
@@ -146,7 +143,6 @@ class MainActivity : ComponentActivity() {
 
     private sealed class WidgetBindTarget {
         data class CarModeSlot(val rowIndex: Int, val column: Int) : WidgetBindTarget()
-        object SearchBar : WidgetBindTarget()
     }
 
     private data class PendingWidgetBind(
@@ -270,7 +266,6 @@ class MainActivity : ComponentActivity() {
         if (carModeEnabled) {
             currentScreen = Screen.CAR_MODE
         }
-        searchWidgetId = SearchWidgetPrefs.getWidgetId(this)
 
         weather = WeatherHelper.getCached(this)
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
@@ -372,19 +367,6 @@ class MainActivity : ComponentActivity() {
                         listDensity = listDensity
                     )
                 }
-                Screen.SEARCH_WIDGET_PICKER -> {
-                    BackHandler {
-                        currentScreen = Screen.SETTINGS
-                    }
-                    CarModeWidgetPickerScreen(
-                        packageFilter = "com.google.android.googlequicksearchbox",
-                        onPick = { provider ->
-                            startSearchWidgetBind(provider)
-                            currentScreen = Screen.SETTINGS
-                        },
-                        onCancel = { currentScreen = Screen.SETTINGS }
-                    )
-                }
                 Screen.CAR_MODE -> {
                     BackHandler {
                         // Car Mode replaces Home: back button does nothing.
@@ -461,14 +443,6 @@ class MainActivity : ComponentActivity() {
                         listDensity = listDensity,
                         onListDensityChange = { density ->
                             viewModel.setListDensity(density)
-                        },
-                        searchWidgetEnabled = searchWidgetId != null,
-                        onSearchWidgetChange = { enabled ->
-                            if (enabled) {
-                                currentScreen = Screen.SEARCH_WIDGET_PICKER
-                            } else {
-                                disableSearchWidget()
-                            }
                         },
                         sortByUsageEnabled = sortByUsageEnabled,
                         onSortByUsageChange = { enabled ->
@@ -658,20 +632,6 @@ class MainActivity : ComponentActivity() {
         startWidgetBind(WidgetBindTarget.CarModeSlot(rowIndex, column), appWidgetId, allowed, provider)
     }
 
-    private fun startSearchWidgetBind(provider: AppWidgetProviderInfo) {
-        val appWidgetId = appWidgetHost.allocateAppWidgetId()
-        val allowed = runCatching {
-            appWidgetManager.bindAppWidgetIdIfAllowed(appWidgetId, provider.provider)
-        }.getOrDefault(false)
-        startWidgetBind(WidgetBindTarget.SearchBar, appWidgetId, allowed, provider)
-    }
-
-    private fun disableSearchWidget() {
-        searchWidgetId?.let { id -> runCatching { appWidgetHost.deleteAppWidgetId(id) } }
-        searchWidgetId = null
-        SearchWidgetPrefs.setWidgetId(this, null)
-    }
-
     private fun startWidgetBind(
         target: WidgetBindTarget,
         appWidgetId: Int,
@@ -718,10 +678,6 @@ class MainActivity : ComponentActivity() {
                     newSlots[target.column] = CarModeSlotContent.Widget(pending.appWidgetId)
                 }
                 updateCarModeRow(target.rowIndex, current.copy(slots = newSlots))
-            }
-            WidgetBindTarget.SearchBar -> {
-                searchWidgetId = pending.appWidgetId
-                SearchWidgetPrefs.setWidgetId(this, pending.appWidgetId)
             }
         }
     }
@@ -1806,8 +1762,6 @@ fun SettingsScreen(
     onClockStyleChange: (ClockStyle) -> Unit,
     listDensity: ListDensity,
     onListDensityChange: (ListDensity) -> Unit,
-    searchWidgetEnabled: Boolean,
-    onSearchWidgetChange: (Boolean) -> Unit,
     sortByUsageEnabled: Boolean,
     onSortByUsageChange: (Boolean) -> Unit,
     sortUsedAppsAlphabetically: Boolean,
@@ -2179,49 +2133,6 @@ fun SettingsScreen(
                         Text(stringResource(R.string.cancel))
                     }
                 }
-            )
-        }
-
-        HorizontalDivider(
-            modifier = Modifier.padding(vertical = 8.dp),
-            color = Color(0xFF222222)
-        )
-
-        // Search Widget Setting Item
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.search_widget),
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.search_widget_desc),
-                    color = Color.Gray,
-                    fontSize = 13.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Switch(
-                checked = searchWidgetEnabled,
-                onCheckedChange = onSearchWidgetChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.Black,
-                    checkedTrackColor = Color.White,
-                    uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = Color(0xFF333333),
-                    uncheckedBorderColor = Color.Transparent
-                )
             )
         }
 

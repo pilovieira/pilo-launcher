@@ -25,7 +25,6 @@
     <string name="hidden_apps">非表示のアプリ</string>
     <string name="no_hidden_apps">非表示のアプリはありません</string>
     <string name="unhide">表示する</string>
-    <string name="search_apps">アプリを検索</string>
     <string name="rename_apps">アプリ名を変更</string>
     <string name="rename_apps_desc">アプリに好きな名前を付けられます</string>
     <string name="rename">名前を変更</string>
@@ -95,6 +94,4 @@
     <string name="weather_forecast_title">今後の予報</string>
     <string name="weather_temp_range">%1$d° / %2$d°</string>
     <string name="weather_today">今日</string>
-    <string name="search_widget">検索ウィジェット</string>
-    <string name="search_widget_desc">検索バーをGoogle検索ウィジェットに置き換え、入力するとそのまま検索できます</string>
 </resources>

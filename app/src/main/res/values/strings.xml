@@ -26,7 +26,6 @@
     <string name="hidden_apps">Hidden Apps</string>
     <string name="no_hidden_apps">No hidden apps</string>
     <string name="unhide">Unhide</string>
-    <string name="search_apps">Search apps</string>
     <string name="rename_apps">Rename Apps</string>
     <string name="rename_apps_desc">Give your apps custom names</string>
     <string name="rename">Rename</string>
@@ -93,8 +92,6 @@
     <string name="auto_car_mode_device_any">Any car stereo (best guess)</string>
     <string name="auto_car_mode_device_desc">Select every Bluetooth device that should turn on Car Mode, such as more than one car</string>
     <string name="auto_car_mode_no_paired_devices">No paired Bluetooth devices found</string>
-    <string name="search_widget">Search Widget</string>
-    <string name="search_widget_desc">Replace the search bar with the Google Search widget, so typing searches directly</string>
     <string name="weather_temperature">%1$d°C</string>
     <string name="weather_details_title">Weather</string>
     <string name="weather_details_loading">Loading…</string>
